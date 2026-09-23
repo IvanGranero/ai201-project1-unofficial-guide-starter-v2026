@@ -53,28 +53,28 @@
 
      Milestone 3. -->
 
-**Chunk 1** — source: `` — produced by: ``
-
+**Chunk 1** — source: CVE-2026-5107.json`` — produced by:split_documents``
+Chunk(chunk_id='f326b030-aa62-4269-af4b-be52b100ae1e', source='CVE-2026-5107.json', index=0, text='A vulnerability has been found in FRRouting FRR up to 10.5.1. This affects the function process_type2_route of the file bgpd/bgp_evpn.c of the component EVPN Type-2 Route Handler. The manipulation leads to improper access controls. The attack can be initiated remotely. The attack is considered to have high complexity. The exploitability is reported as difficult. The identifier of the patch is 7676cad65114aa23adde583d91d9d29e2debd045. To fix this issue, it is recommended to deploy a patch.', produced_by='chunker.py::split_documents', metadata={'product': 'FRR', 'severity': None, 'cvss': None, 'cwe': None})
 ```
 ```
 
-**Chunk 2** — source: `` — produced by: ``
-
+**Chunk 2** — source: CVE-2026-5007.json`` — produced by:split_documents``
+Chunk(chunk_id='2da3aacd-98c1-49f3-9004-b5b857468f04', source='CVE-2026-5007.json', index=1, text='A vulnerability was identified in kazuph mcp-docs-rag up to 0.5.0. Affected is the function cloneRepository of the file src/index.ts of the component add_git_repository/add_text_file. The manipulation leads to os command injection. The attack needs to be performed locally. The exploit is publicly available and might be used. The project was informed of the problem early through an issue report but has not responded yet.', produced_by='chunker.py::split_documents', metadata={'product': 'mcp-docs-rag', 'severity': None, 'cvss': None, 'cwe': None})
 ```
 ```
 
-**Chunk 3** — source: `` — produced by: ``
-
+**Chunk 3** — source: CVE-2026-5445.json`` — produced by:split_documents``
+Chunk(chunk_id='6e8db3df-a8fb-4d6d-8538-774cbb3f9e0a', source='CVE-2026-5445.json', index=2, text='An out-of-bounds read vulnerability exists in the `DecodeLookupTable` function within `DicomImageDecoder.cpp`. The lookup-table decoding logic used for `PALETTE COLOR` images does not validate pixel indices against the lookup table size. Crafted images containing indices larger than the palette size cause the decoder to read beyond allocated lookup table memory and expose heap contents in the output image.', produced_by='chunker.py::split_documents', metadata={'product': 'DICOM Server', 'severity': 'CRITICAL', 'cvss': 9.1, 'cwe': None})
 ```
 ```
 
-**Chunk 4** — source: `` — produced by: ``
-
+**Chunk 4** — source: CVE-2026-5321.json`` — produced by: split_documents``
+Chunk(chunk_id='0b450275-9e75-4dd1-a69f-79b81fbb5ec6', source='CVE-2026-5321.json', index=3, text='A flaw has been found in vanna-ai vanna up to 2.0.2. Affected by this issue is some unknown functionality of the component FastAPI/Flask Server. Executing a manipulation can lead to permissive cross-domain policy with untrusted domains. The attack can be launched remotely. The exploit has been published and may be used. The vendor was contacted early about this disclosure but did not respond in any way.', produced_by='chunker.py::split_documents', metadata={'product': 'vanna', 'severity': None, 'cvss': None, 'cwe': None})
 ```
 ```
 
-**Chunk 5** — source: `` — produced by: ``
-
+**Chunk 5** — source: CVE-2026-5146.json`` — produced by: split_documents``
+Chunk(chunk_id='42f196b6-e5ce-4ac0-9c79-d348c8f74d02', source='CVE-2026-5146.json', index=4, text='Improper access control in the notification management endpoints in Devolutions Server allows an unauthenticated attacker to modify or delete arbitrary user notification records via missing session validation.\n\n\n\nThis issue affects the following versions :\n\n  *  \n\nDevolutions Server 2026.1.6.0 through 2026.1.15.0\n\n\n  *  \n\nDevolutions Server 2025.3.19.0 and earlier', produced_by='chunker.py::split_documents', metadata={'product': 'Server', 'severity': 'MEDIUM', 'cvss': 4.3, 'cwe': None})
 ```
 ```
 

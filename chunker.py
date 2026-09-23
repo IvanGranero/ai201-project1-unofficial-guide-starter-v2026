@@ -26,21 +26,23 @@ from dataclasses import dataclass
 
 import config
 from ingest import Document
+from typing import Dict, Any
 
 
 @dataclass
 class Chunk:
-    """One piece of one document."""
+    """One piece of one CVE document."""
 
-    text: str
-    source: str        # which file it came from
-    index: int         # which chunk within that file, starting at 0
-    produced_by: str   # the function that made it — cite this in your README
+    chunk_id: str                 # CVE ID or UUID
+    source: str                   # filename it came from
+    index: int                    # index within that file
+    text: str                     # CVE description text
+    produced_by: str              # function that made it
+    metadata: Dict[str, Any]      # product, severity, cvss, cwe
 
     @property
     def label(self) -> str:
         return f"{self.source}#{self.index}"
-
 
 def fallback_split(
     documents: list[Document],
@@ -81,23 +83,99 @@ def fallback_split(
 
 
 def split_documents(documents: list[Document]) -> list[Chunk]:
-    """
-    Split documents into chunks. ⚠️ REPLACE THE BODY OF THIS IN MILESTONE 3.
+    import os
+    import json
+    import uuid
+    root_path="corpora/CVE_2026"
+    chunks: list[Chunk] = []
+    index = 0
+    for dirpath, _, filenames in os.walk(root_path):
+        for filename in filenames:
+            if not filename.endswith(".json"):
+                continue
 
-    Right now it just calls the fallback. That is the plain, generic behaviour
-    the brief is talking about.
+            file_path = os.path.join(dirpath, filename)
+            with open(file_path, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    print(f"Skipping invalid JSON: {file_path}")
+                    continue
 
-    When you write your own strategy, set `produced_by` to
-    "chunker.py::split_documents" so your README's Sample Chunks section names
-    the right function. `app.py chunks` prints that string for you.
+            # Extract CVE ID
+            cve_id = data.get("cveMetadata", {}).get("cveId", None)
 
-    Things worth thinking about before you write any code:
-      - Are your documents short posts or long guides?
-      - Is the useful information in one sentence, or spread over a paragraph?
-      - Would splitting on paragraph breaks keep more thoughts intact than
-        splitting on a character count?
-    """
-    return fallback_split(documents)
+            # Extract description (English only)
+            descriptions = (
+                data.get("containers", {})
+                .get("cna", {})
+                .get("descriptions", [])
+            )
+            text = None
+            for desc in descriptions:
+                if desc.get("lang") == "en":
+                    text = desc.get("value")
+                    break
+
+            if not text:
+                continue  # skip if no usable description
+
+            # Extract metadata (vendor, product, severity, CWE, CVSS)
+            affected = (
+                data.get("containers", {})
+                .get("cna", {})
+                .get("affected", [])
+            )
+            vendor = None
+            product = None
+            if affected:
+                vendor = affected[0].get("vendor")
+                product = affected[0].get("product")
+
+            # CVSS score if available
+            metrics = (
+                data.get("containers", {})
+                .get("adp", [{}])[0]
+                .get("metrics", [])
+            )
+            cvss_score = None
+            severity = None
+            cwe = None
+            if metrics:
+                cvss = metrics[0].get("cvssV3_1", {})
+                cvss_score = cvss.get("baseScore")
+                severity = cvss.get("baseSeverity")
+
+                # CWE mapping
+                problem_types = (
+                    data.get("containers", {})
+                    .get("adp", [{}])[0]
+                    .get("problemTypes", [])
+                )
+                if problem_types:
+                    cwe = problem_types[0]["descriptions"][0].get("cweId")
+
+            # Build chunk
+            chunks.append(
+                Chunk(
+                    chunk_id=str(uuid.uuid4()),                 # no CVE ID available
+                    source=filename,
+                    index=index,
+                    text=text,
+                    produced_by="chunker.py::split_documents",
+                    metadata={
+                        "product": product,
+                        "severity": severity,
+                        "cvss": cvss_score,
+                        "cwe": cwe,
+                    },
+                )
+            )
+            index += 1
+
+    print(chunks[:5])
+    
+    return chunks
 
 
 def describe(chunks: list[Chunk]) -> str:
