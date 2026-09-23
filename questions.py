@@ -23,7 +23,7 @@ names a target of "4 of 5", and four of three is not a thing.
 
 QUESTIONS = [
     # {"question": "...", "expects": "..."},
-    {"What is CVE‑2026‑0005? ": "", "Advisory describing Android app pinning bypass, CVSS 6.2, CWE‑200 ": ""},
+    {"What is CVE-2026-9022? ": "", "The Splide Carousel Block plugin for WordPress is vulnerable to Stored Cross-Site Scripting via 'url' Block Attribute in all versions up to, and including, 1.7.1": ""},
     {"Show me vulnerabilities affecting OpenSSL 3.0.2": "", "CVEs describing buffer overflow in OpenSSL handshake": ""},
     {"Are there privilege escalation vulnerabilities in Linux kernel 6.x?": "", "CVEs describing privilege escalation in Linux kernel 6.x": ""},
     {"CVEs describing denial‑of‑service in Apache HTTP Server": "", "Returned advisories with vendor=Apache, product=HTTP Server": ""},

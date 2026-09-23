@@ -93,6 +93,10 @@ I used AI to evaluate whether my system instruction was strict enough for a CVE 
      Doing one? Say so here BEFORE you start. A feature this README never
      claims earns nothing.
      ───────────────────────────────────────────────────────────────────────── -->
+**Stretch features**
+Metadata filtering — let people search results by CVE ID.
+
+I added support for retrieving CVE entries directly by ID instead of relying only on semantic similarity. Initially, typing a CVE number (e.g., CVE‑2026‑0123) returned “I don’t have enough information,” even though the document existed. The root cause was that CVE IDs were not embedded into the document text, so pure semantic search could not match them. I fixed this by switching to a hybrid search: exact‑match retrieval when a CVE ID is present in the query, and semantic search otherwise. This ensures CVE‑ID queries always return the correct advisory.
 
 ---
 

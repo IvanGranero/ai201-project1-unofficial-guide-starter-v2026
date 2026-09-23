@@ -41,11 +41,6 @@ When I ask a question my documents clearly don't cover, the relevance gate
 stops it and the system returns "I don't have enough information about that" —
 in at least 4 of 5 tries.
 
-<!-- The five questions are the ones in `OUT_OF_SCOPE` at the bottom of
-     `questions.py`, and `run_eval.py` puts them through the gate and writes
-     what happened into your run log. Swap them for your own if you'd rather —
-     just keep five of them, or the "4 of 5" above has nothing to be 4 of. -->
-
 **Why this target:**
 Cybersecurity questions often contain terms that appear in my corpus even when the question itself is out‑of‑scope — for example, “kernel,” “OpenSSL,” or “privilege escalation.” This semantic drift causes embeddings for some out‑of‑scope queries to look deceptively similar to in‑scope ones.
 
@@ -58,7 +53,6 @@ At least 4 of 5 sampled chunks should contain a complete CVE advisory with no tr
 
 **Why this target:**
  My ingestion pipeline flattens CVE JSON into a single advisory string. So requiring 4 of 5 complete chunks ensures my chunking strategy is validated without pretending the corpus is perfectly clean.
-
 
 
 ---

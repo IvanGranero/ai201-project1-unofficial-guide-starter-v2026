@@ -36,12 +36,14 @@ from chunker import Chunk
 @dataclass
 class Result:
     """One retrieved chunk and how far it was from the question."""
-
     text: str
     source: str
-    label: str
-    distance: float   # LOWER IS BETTER. 0.3 is close, 0.9 is unrelated.
+    chunk_id: str
+    index: int
+    distance: float
     produced_by: str
+    metadata: dict
+
 
 
 _model = None
@@ -166,7 +168,7 @@ def build_index(
     for start in range(0, len(chunks), batch):
         window = chunks[start : start + batch]
         if corpus == "CVE_2026":
-            ids = [f"{c.chunk_id}#{c.source}#{c.index}" for c in window]
+            ids = [f"{c.chunk_id}" for c in window]
         else:
             ids = [f"{c.source}#{c.index}" for c in window]        
         collection.add(
@@ -174,7 +176,7 @@ def build_index(
             documents=[c.text for c in window],
             embeddings=embed([c.text for c in window]),
             metadatas=[
-                {"source": c.source, "index": c.index, "produced_by": c.produced_by}
+                {"chunk_id": c.chunk_id, "source": c.source, "index": c.index, "produced_by": c.produced_by}
                 for c in window
             ],
         )
@@ -188,11 +190,7 @@ def search(
     corpus: str | None = None,
     variant: str = "default",
 ) -> list[Result]:
-    """
-    Retrieve the chunks closest in meaning to a question.
 
-    Returns them nearest-first, each with its distance.
-    """
     top_k = top_k or config.TOP_K
     name = config.collection_name(corpus, variant)
 
@@ -203,24 +201,52 @@ def search(
             f"No index called '{name}'. Run `python app.py index` first."
         ) from exc
 
+    # --- CVE ID exact-match path -----------------------------------------
+    import re
+    match = re.search(r"CVE-\d{4}-\d+", question, re.IGNORECASE)
+    if match:
+        cve_id = match.group(0)
+        result = collection.get(ids=[cve_id], include=["documents", "metadatas"])
+        if result and result["ids"]:
+            meta = result["metadatas"][0]
+            return [
+                Result(
+                    text=result["documents"][0],
+                    source=meta.get("source", "unknown"),
+                    chunk_id=cve_id,
+                    index=int(meta.get("index", 0)),
+                    distance=0.0,
+                    produced_by=meta.get("produced_by", "unknown"),
+                    metadata=meta,
+                )
+            ]
+        else:
+            return []
+
+    # --- Semantic search path --------------------------------------------
     raw = collection.query(
         query_embeddings=embed([question]),
         n_results=min(top_k, collection.count()),
     )
 
     results: list[Result] = []
-    for text, meta, distance in zip(
-        raw["documents"][0], raw["metadatas"][0], raw["distances"][0]
-    ):
+    docs = raw["documents"][0]
+    metas = raw["metadatas"][0]
+    dists = raw["distances"][0]
+
+    for text, meta, distance in zip(docs, metas, dists):
         results.append(
             Result(
                 text=text,
-                source=str(meta.get("source", "unknown")),
-                label=f"{meta.get('source', 'unknown')}#{meta.get('index', 0)}",
+                source=meta.get("source", "unknown"),
+                chunk_id=meta.get("chunk_id", "unknown"),
+                index=int(meta.get("index", 0)),
                 distance=float(distance),
-                produced_by=str(meta.get("produced_by", "unknown")),
+                produced_by=meta.get("produced_by", "unknown"),
+                metadata=meta,
             )
         )
+
     return results
 
 
