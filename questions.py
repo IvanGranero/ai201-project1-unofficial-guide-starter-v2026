@@ -23,11 +23,11 @@ names a target of "4 of 5", and four of three is not a thing.
 
 QUESTIONS = [
     # {"question": "...", "expects": "..."},
-    {"question": "", "expects": ""},
-    {"question": "", "expects": ""},
-    {"question": "", "expects": ""},
-    {"question": "", "expects": ""},
-    {"question": "", "expects": ""},
+    {"What is CVE‑2026‑0005? ": "", "Advisory describing Android app pinning bypass, CVSS 6.2, CWE‑200 ": ""},
+    {"Show me vulnerabilities affecting OpenSSL 3.0.2 ": "", "CVEs describing buffer overflow in OpenSSL handshake": ""},
+    {"Are there privilege escalation vulnerabilities in Linux kernel 6.x? ": "", "CVEs describing privilege escalation in Linux kernel 6.x": ""},
+    {"CVEs describing denial‑of‑service in Apache HTTP Server": "", "Returned advisories with vendor=Apache, product=HTTP Server": ""},
+    {"CVE-2026-0123": "", "The severity of CVE-2026-0123 is HIGH": ""},
 ]
 
 # Questions from a different world entirely. Your gate should refuse all five.

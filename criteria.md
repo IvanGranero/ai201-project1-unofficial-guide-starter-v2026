@@ -23,8 +23,7 @@ For at least 4 of my 5 test questions, the retrieved chunks include one that
 contains the answer.
 
 **Why this target:**
-<!-- e.g. "One of my questions is about a topic only two documents mention, so
-     I expect that one to be hard." -->
+My corpus is structured as one CVE per chunk, so four of the five questions should be straightforward exact‑match or metadata‑match retrievals. The only risky one is the Linux kernel privilege‑escalation query, because “privilege escalation” is semantic rather than literal metadata. That makes “4 of 5” realistic without being trivial.
 
 ---
 
@@ -32,9 +31,7 @@ contains the answer.
 
 Every answer the system produces names at least one source document.
 
-**Why this target:**
-<!-- Why all five and not four? What about your setup makes that achievable —
-     or what would have to go wrong for it not to be? -->
+Each chunk corresponds to a single CVE JSON file, and my generation prompt already injects the source_id into the answer. The only way this fails is if retrieval returns zero chunks, which is rare for in‑scope questions. Because the pipeline always has at least one chunk for in‑scope queries, “all five” is achievable and meaningful.
 
 ---
 
@@ -50,28 +47,17 @@ in at least 4 of 5 tries.
      just keep five of them, or the "4 of 5" above has nothing to be 4 of. -->
 
 **Why this target:**
-<!-- What did your distances look like when you set the cutoff in Milestone 4?
-     Was there a clean gap, or did the two groups overlap? -->
+Cybersecurity questions often contain terms that appear in my corpus even when the question itself is out‑of‑scope — for example, “kernel,” “OpenSSL,” or “privilege escalation.” This semantic drift causes embeddings for some out‑of‑scope queries to look deceptively similar to in‑scope ones.
 
 ---
 
 ## 4. Something about your chunks
 
-<!-- YOU WRITE THIS ONE.
-
-     How would you know if your chunks were the right size? Name something
-     countable or observable.
-
-     Examples of the right shape — don't copy these, they should come from
-     what you actually saw in Milestone 3:
-       - "At least 4 of 5 sampled chunks read as a complete thought, with no
-          sentence cut in half at either end."
-       - "No chunk is shorter than 200 characters, since anything below that
-          in my corpus turned out to be a heading with no content under it." -->
-
+At least 4 of 5 sampled chunks should contain a complete CVE advisory with no truncated sentences, missing metadata fields, or partial JSON fragments.
 
 
 **Why this target:**
+ My ingestion pipeline flattens CVE JSON into a single advisory string. So requiring 4 of 5 complete chunks ensures my chunking strategy is validated without pretending the corpus is perfectly clean.
 
 
 
@@ -79,18 +65,10 @@ in at least 4 of 5 tries.
 
 ## 5. Your choice
 
-<!-- YOU WRITE THIS ONE TOO.
-
-     Pick something you actually care about getting right. It could be about
-     speed, about refusals, about a particular kind of question your corpus
-     handles badly, about source attribution being correct rather than merely
-     present — anything, as long as it names a number or an observable
-     outcome. -->
-
-
+For at least 4 of 5 test questions, the system should surface the correct severity (LOW/MEDIUM/HIGH/CRITICAL) in the final answer.
 
 **Why this target:**
-
+Severity is one of the most important metadata fields for cybersecurity triage, and my pipeline explicitly flattens cvss.severity into the chunk metadata. Because severity is consistently present in nearly all CVE JSON files, the only failure mode is retrieving the wrong CVE. 
 
 
 ---
