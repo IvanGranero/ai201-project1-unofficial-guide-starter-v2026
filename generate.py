@@ -282,7 +282,8 @@ Rules:
 - If a question asks about a specific version, product, vendor, or component, you may only answer if the documents mention that exact item. Mentions of related versions or similar products do not count.
 - Name the document your answer came from, using the filename shown in each excerpt.
 - Be brief. Two or three sentences is enough.
-- If multiple documents mention the same product, cite only the ones that directly support your answer."""
+- If multiple documents mention the same product, cite only the ones that directly support your answer.
+- If the user provides only a CVE ID, treat it as a request for the CVE’s description and answer using the document."""
 
 
 def build_prompt(question: str, results) -> str:
