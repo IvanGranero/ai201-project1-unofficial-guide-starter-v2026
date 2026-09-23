@@ -41,12 +41,6 @@ def clean_text(raw: str) -> str:
 
 
 def load_documents(corpus: str | None = None) -> list[Document]:
-    """
-    Read every .txt and .md file in the corpus folder.
-
-    Returns a list of Documents. Each one keeps its filename, because every
-    answer your system produces has to name the document it came from.
-    """
     folder = config.corpus_path(corpus)
 
     if not folder.exists():
@@ -57,15 +51,45 @@ def load_documents(corpus: str | None = None) -> list[Document]:
         )
 
     documents: list[Document] = []
-    for path in sorted(folder.iterdir()):
-        if path.suffix.lower() not in {".txt", ".md"}:
-            continue
-        text = clean_text(path.read_text(encoding="utf-8"))
-        if text:
-            documents.append(Document(source=path.name, text=text))
 
-    if not documents:
-        raise ValueError(f"{folder} has no .txt or .md files in it.")
+    if corpus=="CVE_2026":
+        """
+        Load every CVE JSON file in the corpus folder as a Document.
+        Each Document keeps its filename and raw JSON text.
+        """
+        folder = config.corpus_path(corpus)
+
+        if not folder.exists():
+            raise FileNotFoundError(
+                f"No corpus at {folder}.\n"
+                f"Check the corpus name in config.py, or see corpora/README.md."
+            )
+
+        documents: list[Document] = []
+        for path in sorted(folder.rglob("*.json")):
+            raw = path.read_text(encoding="utf-8")
+            if raw.strip():
+                documents.append(Document(source=path.name, text=raw))
+
+        if not documents:
+            raise ValueError(f"{folder} has no JSON files in it.")
+
+    else:
+        """
+        Read every .txt and .md file in the corpus folder.
+
+        Returns a list of Documents. Each one keeps its filename, because every
+        answer your system produces has to name the document it came from.
+        """        
+        for path in sorted(folder.iterdir()):
+            if path.suffix.lower() not in {".txt", ".md"}:
+                continue
+            text = clean_text(path.read_text(encoding="utf-8"))
+            if text:
+                documents.append(Document(source=path.name, text=text))
+
+        if not documents:
+            raise ValueError(f"{folder} has no .txt or .md files in it.")
 
     return documents
 

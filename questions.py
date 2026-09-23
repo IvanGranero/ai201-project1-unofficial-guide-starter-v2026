@@ -24,8 +24,8 @@ names a target of "4 of 5", and four of three is not a thing.
 QUESTIONS = [
     # {"question": "...", "expects": "..."},
     {"What is CVE‑2026‑0005? ": "", "Advisory describing Android app pinning bypass, CVSS 6.2, CWE‑200 ": ""},
-    {"Show me vulnerabilities affecting OpenSSL 3.0.2 ": "", "CVEs describing buffer overflow in OpenSSL handshake": ""},
-    {"Are there privilege escalation vulnerabilities in Linux kernel 6.x? ": "", "CVEs describing privilege escalation in Linux kernel 6.x": ""},
+    {"Show me vulnerabilities affecting OpenSSL 3.0.2": "", "CVEs describing buffer overflow in OpenSSL handshake": ""},
+    {"Are there privilege escalation vulnerabilities in Linux kernel 6.x?": "", "CVEs describing privilege escalation in Linux kernel 6.x": ""},
     {"CVEs describing denial‑of‑service in Apache HTTP Server": "", "Returned advisories with vendor=Apache, product=HTTP Server": ""},
     {"CVE-2026-0123": "", "The severity of CVE-2026-0123 is HIGH": ""},
 ]
@@ -38,14 +38,29 @@ QUESTIONS = [
 # records what happened, so criterion 3 has evidence in the run log alongside
 # the others. They cost no model calls: a refusal never reaches the model.
 OUT_OF_SCOPE = [
-    "What is the capital of Mongolia?",
-    "How do I change the oil in a diesel engine?",
-    "Who won the 1994 World Cup?",
-    "What is the recommended dosage of ibuprofen for a headache?",
-    "How do I write a for loop in Rust?",
+    "What is the average lifespan of a blue whale?",
+    "How do I bake a sourdough loaf with a crispy crust?",
+    "Who painted The Garden of Earthly Delights?",
+    "What is the orbital period of Jupiter around the Sun?",
+    "How do I solve a quadratic equation using the factoring method?",
 ]
+
+
+
+
 
 
 def answered() -> list[dict]:
     """The questions you've actually filled in."""
     return [q for q in QUESTIONS if q.get("question", "").strip()]
+
+if __name__ == "__main__":
+    from app import _ask_one
+    for q in QUESTIONS:
+        q = next(iter(q))
+        print (q)
+        _ask_one(q, corpus="CVE_2026", variant="default", top_k=5, threshold=0.5)
+
+    for q in OUT_OF_SCOPE:
+        print (q)
+        _ask_one(q, corpus="CVE_2026", variant="default", top_k=5, threshold=0.5)

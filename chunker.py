@@ -81,102 +81,90 @@ def fallback_split(
 
     return chunks
 
-
 def split_documents(documents: list[Document]) -> list[Chunk]:
-    import os
     import json
     import uuid
-    root_path="corpora/CVE_2026"
+
     chunks: list[Chunk] = []
     index = 0
-    for dirpath, _, filenames in os.walk(root_path):
-        for filename in filenames:
-            if not filename.endswith(".json"):
-                continue
 
-            file_path = os.path.join(dirpath, filename)
-            with open(file_path, "r", encoding="utf-8") as f:
-                try:
-                    data = json.load(f)
-                except json.JSONDecodeError:
-                    print(f"Skipping invalid JSON: {file_path}")
-                    continue
+    for doc in documents:
+        try:
+            data = json.loads(doc.text)
+        except json.JSONDecodeError:
+            print(f"Skipping invalid JSON: {doc.source}")
+            continue
 
-            # Extract CVE ID
-            cve_id = data.get("cveMetadata", {}).get("cveId", None)
+        # Extract CVE ID
+        cve_id = data.get("cveMetadata", {}).get("cveId", None)
 
-            # Extract description (English only)
-            descriptions = (
-                data.get("containers", {})
-                .get("cna", {})
-                .get("descriptions", [])
-            )
-            text = None
-            for desc in descriptions:
-                if desc.get("lang") == "en":
-                    text = desc.get("value")
-                    break
+        # Extract description (English only)
+        descriptions = (
+            data.get("containers", {})
+            .get("cna", {})
+            .get("descriptions", [])
+        )
+        text = None
+        for desc in descriptions:
+            if desc.get("lang") == "en":
+                text = desc.get("value")
+                break
 
-            if not text:
-                continue  # skip if no usable description
+        if not text:
+            continue
 
-            # Extract metadata (vendor, product, severity, CWE, CVSS)
-            affected = (
-                data.get("containers", {})
-                .get("cna", {})
-                .get("affected", [])
-            )
-            vendor = None
-            product = None
-            if affected:
-                vendor = affected[0].get("vendor")
-                product = affected[0].get("product")
+        # Extract metadata (vendor, product, severity, CWE, CVSS)
+        affected = (
+            data.get("containers", {})
+            .get("cna", {})
+            .get("affected", [])
+        )
+        vendor = None
+        product = None
+        if affected:
+            vendor = affected[0].get("vendor")
+            product = affected[0].get("product")
 
-            # CVSS score if available
-            metrics = (
+        metrics = (
+            data.get("containers", {})
+            .get("adp", [{}])[0]
+            .get("metrics", [])
+        )
+        cvss_score = None
+        severity = None
+        cwe = None
+        if metrics:
+            cvss = metrics[0].get("cvssV3_1", {})
+            cvss_score = cvss.get("baseScore")
+            severity = cvss.get("baseSeverity")
+
+            problem_types = (
                 data.get("containers", {})
                 .get("adp", [{}])[0]
-                .get("metrics", [])
+                .get("problemTypes", [])
             )
-            cvss_score = None
-            severity = None
-            cwe = None
-            if metrics:
-                cvss = metrics[0].get("cvssV3_1", {})
-                cvss_score = cvss.get("baseScore")
-                severity = cvss.get("baseSeverity")
+            if problem_types:
+                cwe = problem_types[0]["descriptions"][0].get("cweId")
 
-                # CWE mapping
-                problem_types = (
-                    data.get("containers", {})
-                    .get("adp", [{}])[0]
-                    .get("problemTypes", [])
-                )
-                if problem_types:
-                    cwe = problem_types[0]["descriptions"][0].get("cweId")
-
-            # Build chunk
-            chunks.append(
-                Chunk(
-                    chunk_id=str(uuid.uuid4()),                 # no CVE ID available
-                    source=filename,
-                    index=index,
-                    text=text,
-                    produced_by="chunker.py::split_documents",
-                    metadata={
-                        "product": product,
-                        "severity": severity,
-                        "cvss": cvss_score,
-                        "cwe": cwe,
-                    },
-                )
+        # Build chunk
+        chunks.append(
+            Chunk(
+                chunk_id=cve_id or str(uuid.uuid4()),
+                source=doc.source,
+                index=index,
+                text=text,
+                produced_by="chunker.py::split_documents",
+                metadata={
+                    "product": product,
+                    "vendor": vendor or "unknown",                    
+                    "severity": severity,
+                    "cvss": cvss_score,
+                    "cwe": cwe,
+                },
             )
-            index += 1
-
-    print(chunks[:5])
-    
+        )
+        index += 1
     return chunks
-
 
 def describe(chunks: list[Chunk]) -> str:
     """A one-line summary, printed after indexing."""
@@ -190,9 +178,8 @@ def describe(chunks: list[Chunk]) -> str:
         f"produced by {chunks[0].produced_by}"
     )
 
-
 if __name__ == "__main__":
     from ingest import load_documents
 
-    chunks = split_documents(load_documents())
+    chunks = split_documents(load_documents("CVE_2026"))
     print(describe(chunks))

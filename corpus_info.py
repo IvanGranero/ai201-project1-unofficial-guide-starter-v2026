@@ -23,6 +23,11 @@ BLURBS = {
         "five guides that cut across them. Information is organised by heading "
         "and spread across paragraphs."
     ),
+    "CVE_2026": (
+        "Structured cybersecurity advisories from CVE/NVD feeds."
+        "~22k entries each a short vulnerability record with consistent metadata (severity, CVSS, CWE, product)."
+        "Highly uniform format but semantically diverse across vendors and vulnerability types."
+    ),    
     "practice": (
         "Not for your project — the small corpus used for the in-class "
         "follow-along."

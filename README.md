@@ -1,19 +1,6 @@
 # The Unofficial Guide
 
-<!-- Replace this line with your name and which corpus you picked. -->
-
-> **This file is your submission.** Fill it in as you go — most sections get
-> written during the milestone that produces them, not at the end.
->
-> How the starter works, and every command you'll need, is in `RUNNING.md`.
-> Leave that file alone.
->
-> **Paste everything as text.** No screenshots, no video. A typed table gets
-> full credit; a picture of the same table gets none.
->
-> Delete these instruction blocks as you replace them. The `<!-- -->` comments
-> are notes to you and don't show up when the page renders — you can leave them
-> or remove them.
+Ivan Granero. I picked my own corpus extracted from https://www.cve.org/Downloads
 
 ---
 
@@ -21,37 +8,23 @@
 
 ## What This Does
 
-<!-- Three or four sentences. Which corpus you picked, and the kinds of
-     questions your system answers. Write it for someone who has never seen
-     this repo.
-
-     Milestone 5. -->
+CORPUS: Cybersecurity Vulnerabilities and advisories
+I built my system on a corpus of CVE vulnerability records, which are short, structured security advisories published by vendors and the NVD. The system answers questions that ask about specific CVE IDs, vulnerabilities affecting a particular product or version, or descriptions of issues such as buffer overflows, misconfigurations, or denial‑of‑service conditions. Because CVE entries follow a consistent format but vary widely in the kinds of vulnerabilities they describe, the corpus supports both precise lookups and semantic searches grounded in the text.
 
 ## Chunking Strategy
 
 **Chunk size:**
+Variable size chunk, I will parse each Vulnerability entry and embed as a single chunk.
+
 **Overlap:**
+No overlap
 
-<!-- What about YOUR documents made you pick these numbers? Short posts and
-     long sectioned guides don't want the same chunking, and "800 seemed
-     reasonable" earns nothing. Point at something you noticed when you read
-     the documents in Milestone 1.
-
-     If you changed your mind partway through, say so and say why. That's worth
-     more than pretending you got it right first time.
-
-     Milestone 3. -->
+**What about YOUR documents made you pick these numbers?**
+Keeps each advisory intact (CVE description + metadata).
+More natural for structured data (CVE entries, API docs, JSON feeds).
+Reduces preprocessing complexity — one CVE = one chunk.
 
 ## Sample Chunks
-
-<!-- Five chunks, pasted as text. Label each one and name the file it came from
-     AND the function that produced it — the grader checks your code against
-     what you claim here.
-
-     `python app.py chunks -n 5` prints all three for you. Copy them straight
-     across.
-
-     Milestone 3. -->
 
 **Chunk 1** — source: CVE-2026-5107.json`` — produced by:split_documents``
 Chunk(chunk_id='f326b030-aa62-4269-af4b-be52b100ae1e', source='CVE-2026-5107.json', index=0, text='A vulnerability has been found in FRRouting FRR up to 10.5.1. This affects the function process_type2_route of the file bgpd/bgp_evpn.c of the component EVPN Type-2 Route Handler. The manipulation leads to improper access controls. The attack can be initiated remotely. The attack is considered to have high complexity. The exploitability is reported as difficult. The identifier of the patch is 7676cad65114aa23adde583d91d9d29e2debd045. To fix this issue, it is recommended to deploy a patch.', produced_by='chunker.py::split_documents', metadata={'product': 'FRR', 'severity': None, 'cvss': None, 'cwe': None})
@@ -80,45 +53,41 @@ Chunk(chunk_id='42f196b6-e5ce-4ac0-9c79-d348c8f74d02', source='CVE-2026-5146.jso
 
 ## Sample Answer
 
-<!-- One complete question and answer, pasted as text, with the source line
-     visible. Milestone 4. -->
-
 **Question:**
+Question: Show me vulnerabilities affecting OpenSSL 3.0.2
 
 **Answer:**
+Based on the provided documents, libtpms versions 0.10.0 and 0.10.1 contain a vulnerability in their integration with OpenSSL 3.x related to the returned IV when certain symmetric ciphers are used (CVE-2026-21444.json).
 
+Sources retrieved: CVE-2026-21444.json, CVE-2026-2184.json, CVE-2026-34054.json, CVE-2026-41676.json, CVE-2026-41677.json
 ```
 ```
 
 **My relevance cutoff:**
+0.5
 
-<!-- The number you set in config.py, and how you got there.
+| Question                                                         | In corpus? | Best distance |
+|------------------------------------------------------------------|------------|---------------|
+| What is CVE‑2026‑0005?                                           | No         | 0.293         |
+| Show me vulnerabilities affecting OpenSSL 3.0.2                  | No         | 0.427         |
+| Are there privilege escalation vulnerabilities in Linux kernel 6 | No         | 0.362         |
+| CVEs describing denial‑of‑service in Apache HTTP Server          | Yes        | 0.360         |
+| CVE‑2026‑0123                                                    | No         | 0.389         |
+| What is the average lifespan of a blue whale                     | No         | 0.802         |
+| How do I bake a sourdough loaf with a crispy crust               | No         | 0.797         |
+| Who painted The Garden of Earthly Delights                       | No         | 0.757         |
+| What is the orbital period of Jupiter around the Sun             | No         | 0.750         |
+| How do I solve a quadratic equation using the factoring method   | No         | 0.811         |
 
-     You ran five questions your corpus covers and the five in OUT_OF_SCOPE
-     that it clearly doesn't, and wrote down the best distance for each. What
-     did those two groups look like? Where was the gap? Put the actual numbers
-     here — the table below wants all ten rows.
-
-     Milestone 4. -->
-
-| Question | In corpus? | Best distance |
-|---|---|---|
-|  |  |  |
 
 ## How I Used AI
 
-<!-- Two specific moments. For each: what you asked for, what came back, and
-     what you changed about it.
-
-     "I asked Claude to write the chunking function from my notes. It ignored
-     the overlap, so I added that myself" is the level of detail we're after.
-     "I used AI to help me code" is not.
-
-     Milestone 5. -->
-
-**1.**
+**1.** 
+I asked AI to help me separate my own CVE monolithic split_documents() function into a clean two‑stage pipeline that matches the course architecture: load_documents() for raw file ingestion and split_documents() for JSON parsing and chunk creation. The AI produced a full rewrite that loaded JSON files into Document objects and then parsed them into Chunk objects. I kept the structure but changed several details: I corrected how CVE IDs were extracted, restored my metadata fields (product, severity, cvss, cwe), and added my own defaults for missing values so the chunk schema stayed consistent across the corpus.
 
 **2.**
+I used AI to evaluate whether my system instruction was strict enough for a CVE corpus after seeing a drifted answer (“OpenSSL 3.x” instead of “OpenSSL 3.0.2”). The AI proposed a stricter version that forbade inference beyond literal text. I adopted the core rule — “only answer if the exact product/version appears in the documents” — but tightened it further by adding my own constraint: semantic neighbors like “OpenSSL bindings,” “OpenSSL providers,” or “OpenSSL 1.1.x” must not be treated as matches. This ensured the model refuses near‑miss queries instead of stretching the meaning of the documents.
+
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never

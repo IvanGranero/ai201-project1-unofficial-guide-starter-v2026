@@ -276,10 +276,13 @@ def generate(prompt: str, system: str | None = None, cache: bool = True) -> str:
 GROUNDING_INSTRUCTION = """You answer questions using only the documents provided to you.
 
 Rules:
-- Use only the information in the documents below. Do not use anything you know from elsewhere.
-- If the documents don't cover the question, say you don't have enough information. Do not guess.
-- Name the document your answer came from, using the filename given in each excerpt.
-- Be brief. Two or three sentences is usually enough."""
+- Use only information stated explicitly in the documents.
+- Do not infer, generalize, or assume anything that is not written in the text.
+- If the documents do not literally answer the question, say I don’t have enough information to answer that.
+- If a question asks about a specific version, product, vendor, or component, you may only answer if the documents mention that exact item. Mentions of related versions or similar products do not count.
+- Name the document your answer came from, using the filename shown in each excerpt.
+- Be brief. Two or three sentences is enough.
+- If multiple documents mention the same product, cite only the ones that directly support your answer."""
 
 
 def build_prompt(question: str, results) -> str:

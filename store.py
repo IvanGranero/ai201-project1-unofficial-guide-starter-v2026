@@ -165,8 +165,12 @@ def build_index(
     batch = 256
     for start in range(0, len(chunks), batch):
         window = chunks[start : start + batch]
+        if corpus == "CVE_2026":
+            ids = [f"{c.chunk_id}#{c.source}#{c.index}" for c in window]
+        else:
+            ids = [f"{c.source}#{c.index}" for c in window]        
         collection.add(
-            ids=[f"{c.source}#{c.index}" for c in window],
+            ids=ids,
             documents=[c.text for c in window],
             embeddings=embed([c.text for c in window]),
             metadatas=[
