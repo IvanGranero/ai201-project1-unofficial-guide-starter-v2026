@@ -176,7 +176,17 @@ def build_index(
             documents=[c.text for c in window],
             embeddings=embed([c.text for c in window]),
             metadatas=[
-                {"chunk_id": c.chunk_id, "source": c.source, "index": c.index, "produced_by": c.produced_by}
+                {
+                    "chunk_id": c.chunk_id,
+                    "source": c.source,
+                    "index": c.index,
+                    "produced_by": c.produced_by,
+                    **{
+                        key: value
+                        for key, value in (c.metadata or {}).items()
+                        if value is not None
+                    },
+                }
                 for c in window
             ],
         )

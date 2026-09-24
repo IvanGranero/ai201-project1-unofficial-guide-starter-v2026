@@ -39,7 +39,7 @@ from pathlib import Path
 
 import config
 import questions as qs
-
+import time
 
 def load_scorer():
     """Use scorer.py if the student has built it. Otherwise run unscored."""
@@ -108,7 +108,7 @@ def main():
         print(f"\n{question}")
 
         run_results = []
-        for run in range(1, args.runs + 1):
+        for run in range(1, args.runs + 1):        
             answer, results, decision = run_once(
                 question, top_k, threshold, corpus, args.variant
             )
@@ -128,6 +128,7 @@ def main():
                     "gate_passed": decision.passed,
                 }
             )
+            time.sleep(1)  # give the model a break between questions
 
         rows.append({"question": question, "expects": expects, "runs": run_results})
 

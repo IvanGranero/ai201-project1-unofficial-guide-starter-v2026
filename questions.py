@@ -22,13 +22,28 @@ names a target of "4 of 5", and four of three is not a thing.
 """
 
 QUESTIONS = [
-    # {"question": "...", "expects": "..."},
-    {"What is CVE-2026-9022? ": "", "The Splide Carousel Block plugin for WordPress is vulnerable to Stored Cross-Site Scripting via 'url' Block Attribute in all versions up to, and including, 1.7.1": ""},
-    {"Show me vulnerabilities affecting OpenSSL 3.0.2": "", "CVEs describing buffer overflow in OpenSSL handshake": ""},
-    {"Are there privilege escalation vulnerabilities in Linux kernel 6.x?": "", "CVEs describing privilege escalation in Linux kernel 6.x": ""},
-    {"CVEs describing denial‑of‑service in Apache HTTP Server": "", "Returned advisories with vendor=Apache, product=HTTP Server": ""},
-    {"CVE-2026-0123": "", "The severity of CVE-2026-0123 is HIGH": ""},
+    {
+        "question": "What is CVE-2026-9022?",
+        "expects": "The Splide Carousel Block plugin for WordPress is vulnerable to Stored Cross-Site Scripting via 'url' Block Attribute in all versions up to, and including, 1.7.1"
+    },
+    {
+        "question": "Show me vulnerabilities affecting OpenSSL 3.0.2",
+        "expects": "CVEs describing buffer overflow in OpenSSL handshake"
+    },
+    {
+        "question": "Are there privilege escalation vulnerabilities in Linux kernel 6.x?",
+        "expects": "CVEs describing privilege escalation in Linux kernel 6.x"
+    },
+    {
+        "question": "CVEs describing denial‑of‑service in Apache HTTP Server",
+        "expects": "Returned advisories with vendor=Apache, product=HTTP Server"
+    },
+    {
+        "question": "Give me the severity of CVE-2026-0123",
+        "expects": "The severity of CVE-2026-0123 is HIGH"
+    }
 ]
+
 
 # Questions from a different world entirely. Your gate should refuse all five.
 #
@@ -57,7 +72,7 @@ def answered() -> list[dict]:
 if __name__ == "__main__":
     from app import _ask_one
     for q in QUESTIONS:
-        q = next(iter(q))
+        q = q["question"]
         print (q)
         _ask_one(q, corpus="CVE_2026", variant="default", top_k=5, threshold=0.5)
 
