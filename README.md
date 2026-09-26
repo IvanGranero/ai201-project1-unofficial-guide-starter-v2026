@@ -151,6 +151,7 @@ I don’t have enough information to answer that.
 ```
 
 Criterion 3 - Gate stops out of scope questions
+run_eval.py::check_out_of_scope`
 python app.py ask "What is the average lifespan of a blue whale?" --show-prompt
   (best distance 0.802, cutoff 0.5)
 
@@ -210,25 +211,30 @@ Question 2 'Show me vulnerabilities affecting OpenSSL 3.0.2' and Question 3 'Are
 
 **What I changed:**
 
+A second chunking strategy.
+The text I am including to embed only ever holds the CVE description. Version data, CWE description, product/vendor for all affected entries, and severity never make it into the embedded text at all, some live in metadata, which isn't searched, it's just displayed once retrieval already succeeded. So a query like "OpenSSL 3.0.2" has nothing to match against in any chunk unless the description mentions it.
+
+I've rewritten the split_documents function to include more data including version ranges. This fix most probably will fix Criterion 5 as well, since the LLM will now have the severity string in front instead of only in unused metadata.
+
 **Why I picked it:**
 
-<!-- Connect it to a specific diagnosis above in one sentence. If you can't,
-     you picked a fix because it sounded impressive. -->
+Version matching is core to what a CVE retrieval system is for. A vulnerability's whole practical value is knowing whether your version is affected. A CVE RAG that can't match versions can retrieve relevant documents and still give a useless or wrong answer, which is exactly what happened in Q2 and Q3. Fixing this at the chunker level, rather than through prompt tuning, ensures version data is actually searchable rather than just displayed after the fact.
+
 
 ### Run Log — After
 
-<!-- Same format, same five criteria, three runs each.
-     `python run_eval.py --label after` -->
-
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |  
+| 2. Every answer names a source | 5 of 5 | 4/5 | 5/5 | 4/5 | MISSED
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET
+| 4. Chunks are complete, untruncated | 4 of 5 | 5/5 | 5/5 | 5/5 | MET
+| 5. Correct severity surfaced | 4 of 5 | 1/5 | 2/5 | 1/5 | MISSED
+
 
 **Did it help?**
+
+Absolutely, criterion 1 went from 4/5 to 5/5. The clearest win is Question 3 (Linux kernel 6.x): the retrieved chunk for CVE-2026-23268 now explicitly lists version ranges (visible in the model citing "6.1.169, 6.6.130, 6.12.77..." in run 1), which wasn't possible before since versions weren't embedded. This question flipped from "I don't have enough information" (before) to a correctly sourced "Yes" in all 3 runs.
 
 <!-- Say plainly whether it did, and how you know. If it made things worse,
      say that — a change that backfired, honestly reported, earns full credit

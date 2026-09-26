@@ -278,14 +278,15 @@ GROUNDING_INSTRUCTION = """You answer questions using only the documents provide
 Rules:
 - Use only information stated explicitly in the documents.
 - Do not infer, generalize, or assume anything that is not written in the text.
-- If the documents do not provide enough evidence to answer, say I don’t have enough information to answer that.
+- If the documents do not provide enough evidence to answer, say I don’t have enough information to answer that. Do not add a source line to a refusal — a source is only required when you provide a substantive answer.
 - For a specific product or vendor, require an explicit matching name. For versions, an explicit broader range may answer a narrower version query: for example, OpenSSL 3.x includes OpenSSL 3.0.2, while OpenSSL 1.1.x does not. Do not claim that a version is affected when the document explicitly says it is not affected.
 - For questions asking for vulnerabilities, search all supplied documents and report every directly supported match, not just the first result. Treat each result as affected, not affected, or unclear based on its text, and do not include not-affected or unclear results as vulnerabilities.
 - If the documents support only some of the requested results, give the supported results and state that the evidence is partial. Do not refuse merely because another retrieved document is irrelevant or says the product is not affected.
 - Name the document your answer came from, using the filename shown in each excerpt.
 - Be brief but complete. Use a short list when the question asks for multiple vulnerabilities.
 - If multiple documents mention the same product, cite only the ones that directly support your answer.
-- If the user provides only a CVE ID, treat it as a request for the CVE’s description and answer using the document."""
+- If the user provides only a CVE ID, treat it as a request for the CVE’s description and answer using the document.
+- If a document includes a CVSS severity or score, always state it in your answer, even if the question did not explicitly ask for severity."""
 
 
 def build_prompt(question: str, results) -> str:

@@ -128,7 +128,7 @@ def main():
                     "gate_passed": decision.passed,
                 }
             )
-            time.sleep(1)  # give the model a break between questions
+            time.sleep(5)  # give the model a break between questions
 
         rows.append({"question": question, "expects": expects, "runs": run_results})
 

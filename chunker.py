@@ -81,10 +81,47 @@ def fallback_split(
 
     return chunks
 
-def split_documents(documents: list[Document]) -> list[Chunk]:
-    import json
-    import uuid
+import json
+import uuid
 
+def _extract_metrics(metrics_list):
+    """Pull the first available CVSS score/severity, checking all known versions."""
+    for m in metrics_list:
+        for key in ("cvssV4_0", "cvssV3_1", "cvssV3_0", "cvssV2_0"):
+            if key in m:
+                cvss = m[key]
+                return cvss.get("baseScore"), cvss.get("baseSeverity"), key
+    return None, None, None
+
+
+def _extract_cwe(problem_types):
+    """Return (cweId, description) from the first entry that has one."""
+    for pt in problem_types:
+        for desc in pt.get("descriptions", []):
+            if desc.get("cweId"):
+                return desc.get("cweId"), desc.get("description")
+    return None, None
+
+
+def _format_versions(affected_entry):
+    """Turn a single affected{} block's version list into a readable string."""
+    lines = []
+    default_status = affected_entry.get("defaultStatus", "unknown")
+    for v in affected_entry.get("versions", []):
+        status = v.get("status", default_status)
+        version = v.get("version", "unspecified")
+        piece = f"version {version}: {status}"
+        if v.get("lessThan"):
+            piece += f" (up to but not including {v['lessThan']})"
+        elif v.get("lessThanOrEqual"):
+            piece += f" (up to and including {v['lessThanOrEqual']})"
+        if v.get("versionType"):
+            piece += f" [{v['versionType']}]"
+        lines.append(piece)
+    return default_status, lines
+
+
+def split_documents(documents: list[Document]) -> list[Chunk]:
     chunks: list[Chunk] = []
     index = 0
 
@@ -95,76 +132,94 @@ def split_documents(documents: list[Document]) -> list[Chunk]:
             print(f"Skipping invalid JSON: {doc.source}")
             continue
 
-        # Extract CVE ID
-        cve_id = data.get("cveMetadata", {}).get("cveId", None)
+        cve_meta = data.get("cveMetadata", {})
+        cve_id = cve_meta.get("cveId")
 
-        # Extract description (English only)
-        descriptions = (
-            data.get("containers", {})
-            .get("cna", {})
-            .get("descriptions", [])
-        )
+        # Skip rejected/reserved records — little usable content, pollutes retrieval
+        if cve_meta.get("state") != "PUBLISHED":
+            continue
+
+        cna = data.get("containers", {}).get("cna", {})
+        adp_list = data.get("containers", {}).get("adp", [])
+
+        # English description
         text = None
-        for desc in descriptions:
+        for desc in cna.get("descriptions", []):
             if desc.get("lang") == "en":
                 text = desc.get("value")
                 break
-
         if not text:
             continue
 
-        # Extract metadata (vendor, product, severity, CWE, CVSS)
-        affected = (
-            data.get("containers", {})
-            .get("cna", {})
-            .get("affected", [])
-        )
-        vendor = None
-        product = None
-        if affected:
-            vendor = affected[0].get("vendor")
-            product = affected[0].get("product")
+        # Walk ALL affected entries, not just [0]
+        affected_list = cna.get("affected", [])
+        vendor = affected_list[0].get("vendor") if affected_list else None
+        product = affected_list[0].get("product") if affected_list else None
 
-        metrics = (
-            data.get("containers", {})
-            .get("adp", [{}])[0]
-            .get("metrics", [])
-        )
-        cvss_score = None
-        severity = None
-        cwe = None
-        if metrics:
-            cvss = metrics[0].get("cvssV3_1", {})
-            cvss_score = cvss.get("baseScore")
-            severity = cvss.get("baseSeverity")
+        version_blocks = []
+        for entry in affected_list:
+            v = entry.get("vendor", "unknown")
+            p = entry.get("product", "unknown")
+            default_status, lines = _format_versions(entry)
+            if lines:
+                version_blocks.append(
+                    f"{v} {p} (default status: {default_status}): " + "; ".join(lines)
+                )
 
-            problem_types = (
-                data.get("containers", {})
-                .get("adp", [{}])[0]
-                .get("problemTypes", [])
-            )
-            if problem_types:
-                cwe = problem_types[0]["descriptions"][0].get("cweId")
+        # Metrics: check cna.metrics first, then every adp entry
+        cvss_score, severity, cvss_version = _extract_metrics(cna.get("metrics", []))
+        if cvss_score is None:
+            for adp in adp_list:
+                cvss_score, severity, cvss_version = _extract_metrics(adp.get("metrics", []))
+                if cvss_score is not None:
+                    break
 
-        # Build chunk
+        # CWE: check cna.problemTypes first, then every adp entry
+        cwe, cwe_desc = _extract_cwe(cna.get("problemTypes", []))
+        if cwe is None:
+            for adp in adp_list:
+                cwe, cwe_desc = _extract_cwe(adp.get("problemTypes", []))
+                if cwe is not None:
+                    break
+
+        title = cna.get("title")
+        references = [r.get("url") for r in cna.get("references", []) if r.get("url")]
+
+        # Build embedded text: description + versions + severity + CWE all folded in,
+        # since only `text` gets embedded/searched — metadata alone won't match a query.
+        text_parts = [text]
+        if title:
+            text_parts.insert(0, title)
+        if version_blocks:
+            text_parts.append("Affected versions: " + " | ".join(version_blocks))
+        if severity or cvss_score:
+            text_parts.append(f"Severity: {severity or 'unknown'} (CVSS {cvss_version or ''} score: {cvss_score or 'unknown'})")
+        if cwe:
+            text_parts.append(f"Weakness type: {cwe} {cwe_desc or ''}".strip())
+
+        full_text = "\n\n".join(text_parts)
+
         chunks.append(
             Chunk(
                 chunk_id=cve_id or str(uuid.uuid4()),
                 source=doc.source,
                 index=index,
-                text=text,
+                text=full_text,
                 produced_by="chunker.py::split_documents",
                 metadata={
                     "product": product,
-                    "vendor": vendor or "unknown",                    
+                    "vendor": vendor or "unknown",
                     "severity": severity,
                     "cvss": cvss_score,
+                    "cvss_version": cvss_version,
                     "cwe": cwe,
+                    "references": "; ".join(references) if references else None,
                 },
             )
         )
         index += 1
     return chunks
+
 
 def describe(chunks: list[Chunk]) -> str:
     """A one-line summary, printed after indexing."""

@@ -194,28 +194,53 @@ def build_index(
     return len(chunks)
 
 
+import re
+def normalize_cve_id(text: str) -> str | None:
+    """
+    Recognize a CVE reference in free text regardless of separator style
+    (dash, space, underscore, or none) and return its canonical form,
+    e.g. "CVE-2026-41677". Returns None if nothing plausible is found.
+ 
+    Deliberately does NOT match a bare number with no year context
+    (e.g. "41677") — CVE numbers repeat across years, so guessing a
+    year would silently produce wrong exact-match results. Those
+    queries should fall through to semantic search instead.
+    """
+    # Explicit "CVE" prefix, any separator (dash/space/underscore/none) between parts
+    match = re.search(r"CVE[-_ ]?(\d{4})[-_ ]?(\d{4,7})", text, re.IGNORECASE)
+    if match:
+        year, num = match.groups()
+        return f"CVE-{year}-{num}"
+ 
+    # No "CVE" prefix, but a plausible "YYYY-NNNNN" pattern (dash, space, or underscore)
+    match = re.search(r"\b(19|20)\d{2}[-_ ]\d{4,7}\b", text)
+    if match:
+        year_and_num = re.sub(r"[-_ ]", "-", match.group(0))
+        return f"CVE-{year_and_num}"
+ 
+    return None
+ 
+ 
 def search(
     question: str,
     top_k: int | None = None,
     corpus: str | None = None,
     variant: str = "default",
 ) -> list[Result]:
-
+ 
     top_k = top_k or config.TOP_K
     name = config.collection_name(corpus, variant)
-
+ 
     try:
         collection = _client().get_collection(name)
     except Exception as exc:
         raise RuntimeError(
             f"No index called '{name}'. Run `python app.py index` first."
         ) from exc
-
-    # --- CVE ID exact-match path -----------------------------------------
-    import re
-    match = re.search(r"CVE-\d{4}-\d+", question, re.IGNORECASE)
-    if match:
-        cve_id = match.group(0)
+ 
+    # --- CVE ID match path -----------------------------------------
+    cve_id = normalize_cve_id(question)
+    if cve_id:
         result = collection.get(ids=[cve_id], include=["documents", "metadatas"])
         if result and result["ids"]:
             meta = result["metadatas"][0]
@@ -230,8 +255,6 @@ def search(
                     metadata=meta,
                 )
             ]
-        else:
-            return []
 
     # --- Semantic search path --------------------------------------------
     raw = collection.query(
