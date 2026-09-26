@@ -204,23 +204,7 @@ Why: The original criterion was written to catch truncation, but your chunking s
 
 ## Diagnoses
 
-<!-- For each miss: which stage caused it, and how. The stage alone isn't
-     enough — you need the mechanism.
-
-     Not a diagnosis: "Question 3 didn't work."
-     A diagnosis:     "Question 3 asks about laundry costs. The answer is in
-                       one sentence that got split across two chunks, so
-                       neither chunk on its own contains it."
-
-     The five stages: loading → chunking → embedding → retrieval → generation.
-
-     Look for a pattern. If three misses all ask about numbers, that's one
-     problem, not three.
-
-     Missed nothing? Say so, then say honestly whether your targets were set
-     low, and which one you'd tighten and to what.
-
-     Milestone 3. -->
+Question 2 'Show me vulnerabilities affecting OpenSSL 3.0.2' and Question 3 'Are there privilege escalation vulnerabilities in Linux kernel 6.x?' are not able to match a .x or .* with any number, chunks are provided with relevant information but in most cases there is no version available in the provided chunks, our sources do contain version data however our chunker is skipping them additionally there are no specific instructions in the prompt on how to treat these cases.
 
 ## The Improvement
 
