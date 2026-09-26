@@ -72,7 +72,7 @@ Sources retrieved: CVE-2026-21444.json, CVE-2026-2184.json, CVE-2026-34054.json,
 | Show me vulnerabilities affecting OpenSSL 3.0.2                  | No         | 0.427         |
 | Are there privilege escalation vulnerabilities in Linux kernel 6 | No         | 0.362         |
 | CVEs describing denial‑of‑service in Apache HTTP Server          | Yes        | 0.360         |
-| CVE‑2026‑0123                                                    | No         | 0.389         |
+| Give me the severity of CVE-2026-0123                            | No         | 0.389         |
 | What is the average lifespan of a blue whale                     | No         | 0.802         |
 | How do I bake a sourdough loaf with a crispy crust               | No         | 0.797         |
 | Who painted The Garden of Earthly Delights                       | No         | 0.757         |
@@ -98,7 +98,10 @@ Metadata filtering — let people search results by CVE ID.
 
 I added support for retrieving CVE entries directly by ID instead of relying only on semantic similarity. Initially, typing a CVE number (e.g., CVE‑2026‑0123) returned “I don’t have enough information,” even though the document existed. The root cause was that CVE IDs were not embedded into the document text, so pure semantic search could not match them. I fixed this by switching to a hybrid search: exact‑match retrieval when a CVE ID is present in the query, and semantic search otherwise. This ensures CVE‑ID queries always return the correct advisory.
 
+Second embedding model -
+
 ---
+
 
 # Unit 2
 
@@ -120,15 +123,60 @@ I added support for retrieving CVE entries directly by ID instead of relying onl
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 4/5 | 4/5 | 4/5 | MET |  
+| 2. Every answer names a source | 5 of 5 | 4/5 | 3/5 | 4/5 | MISSED
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks are complete, untruncated | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 5. Correct severity surfaced | 4 of 5 | 1/5 | 1/5 | 1/5 | MISSED |
 
 <!-- Underneath, paste the REAL output for each criterion from one of your
      runs — the actual text your system produced, not a description of it.
      Name the file and function that produced it. -->
+
+Criterion 1 - 
+Based on the provided documents, OpenSSL 3.x is explicitly stated as **not affected** by the vulnerabilities described in:
+- `CVE-2026-41677.json`
+- `CVE-2026-41676.json`
+
+Additionally, the documents do not mention version 3.0.2 specifically, but they do mention an integration of libtpms with OpenSSL 3.x in `CVE-2026-21444.json`. However, that document states the vulnerability is in libtpms versions 0.10.0 and 0.10.1 (not OpenSSL itself). 
+
+Therefore, I don’t have enough information to answer that OpenSSL 3.0.2 is affected by any of the listed vulnerabilities.
+
+Criterion 2 - No sources were mentioned in the actual answer in this example
+- Best distance: 0.3621 (passed the gate)
+- Sources retrieved: CVE-2026-23268.json, CVE-2026-3006.json, CVE-2026-34855.json, CVE-2026-3609.json, CVE-2026-43206.json
+
+```
+I don’t have enough information to answer that.
+```
+
+Criterion 3 - Gate stops out of scope questions
+python app.py ask "What is the average lifespan of a blue whale?" --show-prompt
+  (best distance 0.802, cutoff 0.5)
+
+I don't have enough information about that.
+
+Criterion 4 - Chunks are complete, untruncated
+Documents:
+
+[from CVE-2026-49975.json]
+Metadata: {"chunk_id": "CVE-2026-49975", "index": 18371, "produced_by": "chunker.py::split_documents", "product": "Apache HTTP Server", "source": "CVE-2026-49975.json", "vendor": "Apache Software Foundation"}
+Retrieval distance: 0.3602600693702698
+Chunk ID: CVE-2026-49975
+Text:
+Memory Allocation with Excessive Size Value vulnerability in Apache HTTP Server's mod_http leads to denial of service via malicious HTTP requests.
+
+This issue affects Apache HTTP Server: from 2.4.17 through 2.4.67.
+
+[from CVE-2026-6409.json]
+Metadata: {"chunk_id": "CVE-2026-6409", "index": 20313, "produced_by": "chunker.py::split_documents", "product": "Protobuf-php (Pecl)", "source": "CVE-2026-6409.json", "vendor": "Protocol Buffers"}
+Retrieval distance: 0.4012501835823059
+Chunk ID: CVE-2026-6409
+Text:
+A Denial of Service (DoS) vulnerability exists in the Protobuf PHP library during the parsing of untrusted input. Maliciously structured messages—specifically those containing negative varints or deep recursion—can be used to crash the application, impacting service availability.
+
+
+
 
 ## Verdicts
 

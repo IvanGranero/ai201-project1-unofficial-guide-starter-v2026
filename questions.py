@@ -28,7 +28,7 @@ QUESTIONS = [
     },
     {
         "question": "Show me vulnerabilities affecting OpenSSL 3.0.2",
-        "expects": "CVEs describing buffer overflow in OpenSSL handshake"
+        "expects": "CVEs describing vulnerabilities in OpenSSL 3.x"
     },
     {
         "question": "Are there privilege escalation vulnerabilities in Linux kernel 6.x?",
