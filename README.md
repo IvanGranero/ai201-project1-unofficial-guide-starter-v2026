@@ -191,11 +191,16 @@ A Denial of Service (DoS) vulnerability exists in the Protobuf PHP library durin
 
 | # | Criterion | Verdict | How I decided |
 |---|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
-| 4 |  |  |  |
-| 5 |  |  |  |
+| 1 | Retrieved chunk contains the answer | MET | 4 out of the 5 questions return chunks with the answer, question 3 provided chunks containing relevant information but not specific to the question.
+| 2 | Every answer names a source | MISSED | There were a few runs where the actual answer didn't mention the source. Pobably refining the system prompt will fix this.
+| 3 | Gate stops out-of-corpus questions | MET | 5 of the 5 out of scope questions were stop and replied right away.
+| 4 | Chunks are complete, untruncated | MET | All retrieved chunks were complete with the full CVE. This is due to having a chunk per CVE not per lines or characters.
+| 5 | Correct severity surfaced | MISSED | Severity is only displayed when specifically asked for it.
+
+
+Original: "Chunks are complete, untruncated" — Target 4 of 5
+Revised: "At least 4 of 5 sampled chunks map 1:1 to a single CVE, with no merged or split records"
+Why: The original criterion was written to catch truncation, but your chunking strategy (one chunk per CVE, not per line/character) makes truncation structurally impossible. The revised version tests something that actually could go wrong such as a malformed source document causing two CVEs to merge into one chunk, or one CVE getting split across two chunks due to a parsing edge case.
 
 ## Diagnoses
 
