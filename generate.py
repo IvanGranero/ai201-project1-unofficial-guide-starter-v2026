@@ -286,7 +286,9 @@ Rules:
 - Be brief but complete. Use a short list when the question asks for multiple vulnerabilities.
 - If multiple documents mention the same product, cite only the ones that directly support your answer.
 - If the user provides only a CVE ID, treat it as a request for the CVE’s description and answer using the document.
-- If a document includes a CVSS severity or score, always state it in your answer, even if the question did not explicitly ask for severity."""
+- If a document includes a CVSS severity or score, always state it in your answer, even if the question did not explicitly ask for severity.
+- If retrieved documents explicitly address the queried product/version but state it is not affected, do not use the generic insufficient-information refusal. Instead state plainly that no vulnerabilities were found affecting the queried product/version, and name the document(s) that explicitly exclude it.
+- Reserve "I don't have enough information to answer that" only for cases where no retrieved document addresses the queried product or version at all."""
 
 
 def build_prompt(question: str, results) -> str:

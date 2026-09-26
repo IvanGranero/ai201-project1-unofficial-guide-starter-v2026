@@ -88,6 +88,8 @@ I asked AI to help me separate my own CVE monolithic split_documents() function 
 **2.**
 I used AI to evaluate whether my system instruction was strict enough for a CVE corpus after seeing a drifted answer (“OpenSSL 3.x” instead of “OpenSSL 3.0.2”). The AI proposed a stricter version that forbade inference beyond literal text. I adopted the core rule — “only answer if the exact product/version appears in the documents” — but tightened it further by adding my own constraint: semantic neighbors like “OpenSSL bindings,” “OpenSSL providers,” or “OpenSSL 1.1.x” must not be treated as matches. This ensured the model refuses near‑miss queries instead of stretching the meaning of the documents.
 
+**3.**
+When Criterion 5 kept missing, I initially suspected the prompt. Claude traced the actual root cause back through the CVE JSON schema and my chunker code and showed that severity data never made it into the embedded chunk text at all — it only lived in unused metadata. That reframed the fix from "improve prompting" to "fix the chunker," which a prompt-only fix would never have solved.
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
@@ -236,26 +238,12 @@ Version matching is core to what a CVE retrieval system is for. A vulnerability'
 
 Absolutely, criterion 1 went from 4/5 to 5/5. The clearest win is Question 3 (Linux kernel 6.x): the retrieved chunk for CVE-2026-23268 now explicitly lists version ranges (visible in the model citing "6.1.169, 6.6.130, 6.12.77..." in run 1), which wasn't possible before since versions weren't embedded. This question flipped from "I don't have enough information" (before) to a correctly sourced "Yes" in all 3 runs.
 
-<!-- Say plainly whether it did, and how you know. If it made things worse,
-     say that — a change that backfired, honestly reported, earns full credit
-     and is more interesting than one that worked. What matters is that you can
-     tell.
-
-     Milestone 4. -->
 
 ## What's Still Broken
 
-<!-- For each criterion still missed after your fix: what you'd do about it,
-     and why you stopped where you did.
-
-     "I ran out of time" is fine if it's true. Pretending nothing is left is
-     not.
-
-     Milestone 5. -->
+Criterion 2 and 5 is still a missed, Criterion 2 failed a couple of times because the retrieval is not always able to generate a correct response for Question 3, looking at the chunks retrieved there were no chunks with the correct answer pulled in those cases, therefore increasing the top_k from 5 to 10 solved the issue. For Criterion 2 the responses are always available but the answer do not include it because the prompt doesn't have instructions for it, this will be fix by refining the system prompt. These are now fixed on an extra eval run.
 
 ## What I'd Do Differently
 
-<!-- Knowing what you know now — which of your five criteria would you write
-     differently, and why?
+If I were writing these five criteria from scratch again, I'd revise Criterion 5 ("Correct severity surfaced"). Sounds like a retrieval or generation quality issue, but this whole unit showed it was actually two separate, sequential problems bundled into one number: first, severity wasn't even in the embedded text (a chunking bug), and second, once it was, the model still wouldn't surface it consistently. A single pass/fail criterion couldn't distinguish "the data isn't there" from "the data is there but the model isn't told to use it". Next time I'd split it into two criteria, something like "severity is present in the retrieved chunk text" and "severity is stated in the final answer when present in the chunk", so a failure tells me immediately which half of the pipeline to fix instead of leaving me to diagnose it by hand.
 
-     Milestone 5. -->

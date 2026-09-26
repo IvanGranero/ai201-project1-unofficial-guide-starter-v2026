@@ -36,7 +36,7 @@ QUESTIONS = [
     },
     {
         "question": "CVEs describing denial‑of‑service in Apache HTTP Server",
-        "expects": "Returned advisories with vendor=Apache, product=HTTP Server"
+        "expects": "Vulnerabilities describing denial of service in Apache HTTP Server"
     },
     {
         "question": "Give me the severity of CVE-2026-0123",
