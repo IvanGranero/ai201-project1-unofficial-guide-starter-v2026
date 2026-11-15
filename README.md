@@ -247,3 +247,17 @@ Criterion 2 and 5 is still a missed, Criterion 2 failed a couple of times becaus
 
 If I were writing these five criteria from scratch again, I'd revise Criterion 5 ("Correct severity surfaced"). Sounds like a retrieval or generation quality issue, but this whole unit showed it was actually two separate, sequential problems bundled into one number: first, severity wasn't even in the embedded text (a chunking bug), and second, once it was, the model still wouldn't surface it consistently. A single pass/fail criterion couldn't distinguish "the data isn't there" from "the data is there but the model isn't told to use it". Next time I'd split it into two criteria, something like "severity is present in the retrieved chunk text" and "severity is stated in the final answer when present in the chunk", so a failure tells me immediately which half of the pipeline to fix instead of leaving me to diagnose it by hand.
 
+## The System
+
+I chose this RAG because I had already developed it for a CVE corpus and know how its pieces work, from loading and chunking CVE records to vector search, the relevance gate, and answer generation. I have already encountered retrieval problems involving product versions and severity, so I have a good starting point for anticipating failure modes and deciding what to measure when I deploy it.
+
+## The Shape
+
+**A — Deploy and instrument.** I will deploy the existing Flask service so the CVE RAG can answer questions online, keep its Chroma index on persistent storage, and add request logging and timing. I will check that the deployed service is healthy and record how it performs on a few CVE questions. The goal is to make the current system run reliably and visibly in production, not to change how it retrieves or answers.
+
+## Out of Scope
+
+- I am not building a separate browser interface.
+- I am not changing the chunking, embeddings, or retrieval strategy.
+- I am not adding user accounts or multiple service instances.
+
