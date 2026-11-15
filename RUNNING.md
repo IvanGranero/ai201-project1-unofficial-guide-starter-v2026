@@ -208,6 +208,7 @@ gunicorn --workers 1 --bind 127.0.0.1:8000 serve:app
 
 | Thing | What it does |
 |---|---|
+| `GET /` | Serves the browser question form |
 | `POST /ask` | Send `{"question": "..."}`, get the answer and its sources back as JSON |
 | `GET /health` | Says whether the service is up and whether an index exists to search |
 | `PORT` | The port to listen on. Hosts set it for you; on your laptop it defaults to 5000 |
@@ -242,6 +243,21 @@ The project's `test.py` recommends 4 GiB for development and indexing. Serving
 a prebuilt index with one worker uses less, but 512 MiB may still run out of
 memory; monitor the service and resize if needed. Check `/health` for
 `"index_ready": true` after copying the index.
+
+To share the form with classmates, enable Nginx Basic Auth in the HTTPS server
+block so it protects both `/` and `/ask`. Install `apache2-utils`, then create
+one shared login with `htpasswd -cB /etc/nginx/.htpasswd classmates`; it will
+prompt for the password. Add these directives inside the HTTPS `server` block:
+
+```nginx
+auth_basic "CVE Guide";
+auth_basic_user_file /etc/nginx/.htpasswd;
+```
+
+Keep Gunicorn bound to `127.0.0.1` so the unauthenticated app port is not
+reachable directly. Use HTTPS before sharing the password; Basic Auth alone
+does not encrypt it. After editing Nginx, validate and reload it with
+`nginx -t && systemctl reload nginx`.
 
 ---
 

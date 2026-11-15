@@ -257,7 +257,7 @@ I chose this RAG because I had already developed it for a CVE corpus and know ho
 
 ## Out of Scope
 
-- I am not building a separate browser interface.
+- I am not building a separate frontend framework or a complex interface; the UI is one simple Flask-served form.
 - I am not changing the chunking, embeddings, or retrieval strategy.
 - I am not adding user accounts or multiple service instances.
 

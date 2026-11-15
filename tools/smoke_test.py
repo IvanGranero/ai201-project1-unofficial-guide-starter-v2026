@@ -76,9 +76,16 @@ def main():
     log_handler.setFormatter(logging.Formatter("%(message)s"))
     service_app.logger.addHandler(log_handler)
     try:
-        response = service_app.test_client().post("/ask", json={})
+        client = service_app.test_client()
+        home_response = client.get("/")
+        response = client.post("/ask", json={})
     finally:
         service_app.logger.removeHandler(log_handler)
+
+    check(
+        "  browser form is served",
+        home_response.status_code == 200 and b'id="ask-form"' in home_response.data,
+    )
 
     log_records = [
         json.loads(line)

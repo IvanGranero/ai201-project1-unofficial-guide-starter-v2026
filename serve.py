@@ -13,6 +13,7 @@ your system answers, you change it in those files and this one follows.
 
 Two routes:
 
+    GET  /          a small browser form for asking questions
     POST /ask       {"question": "..."} in, the answer and its sources out
     GET  /health    is the service up, and is there an index to search
 
@@ -30,7 +31,7 @@ import os
 import time
 import uuid
 
-from flask import Flask, g, jsonify, request
+from flask import Flask, g, jsonify, render_template, request
 
 import config
 
@@ -38,6 +39,11 @@ app = Flask(__name__)
 app.logger.setLevel(logging.INFO)
 for handler in app.logger.handlers:
     handler.setFormatter(logging.Formatter("%(message)s"))
+
+
+@app.get("/")
+def home():
+    return render_template("index.html")
 
 
 @app.before_request
