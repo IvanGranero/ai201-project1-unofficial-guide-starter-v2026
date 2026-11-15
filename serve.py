@@ -20,20 +20,52 @@ Why this exists: `app.py` runs once and exits, which is fine on your laptop
 and impossible to deploy. A hosted service has to stay up and wait for
 requests. This is the smallest thing that does that.
 
-⚠️ There is deliberately no logging, no timing and no metrics in this file.
-Unit 9 has you build the structured log yourself — the request line, the
-timing field everyone skips, the whole instrument-before-you-deploy exercise.
-Shipping a logger here would hand you the answer to that. Add yours in unit 9;
-this file stays the bare shell until then.
+Each HTTP request is logged with its status, outcome, request ID, and duration.
+Question text and prompts are deliberately not included in the logs.
 """
 
+import json
+import logging
 import os
+import time
+import uuid
 
-from flask import Flask, jsonify, request
+from flask import Flask, g, jsonify, request
 
 import config
 
 app = Flask(__name__)
+app.logger.setLevel(logging.INFO)
+for handler in app.logger.handlers:
+    handler.setFormatter(logging.Formatter("%(message)s"))
+
+
+@app.before_request
+def start_request():
+    g.request_id = uuid.uuid4().hex
+    g.request_started_at = time.perf_counter()
+
+
+@app.after_request
+def log_request(response):
+    duration_ms = (time.perf_counter() - g.request_started_at) * 1000
+    response.headers["X-Request-ID"] = g.request_id
+    app.logger.info(
+        "%s",
+        json.dumps(
+            {
+                "event": "http_request",
+                "request_id": g.request_id,
+                "method": request.method,
+                "path": request.path,
+                "status_code": response.status_code,
+                "duration_ms": round(duration_ms, 2),
+                "outcome": getattr(g, "request_outcome", "completed"),
+            },
+            separators=(",", ":"),
+        ),
+    )
+    return response
 
 
 @app.get("/health")
@@ -49,6 +81,7 @@ def health():
     from store import index_exists
 
     ready = index_exists(config.CORPUS)
+    g.request_outcome = "ready" if ready else "index_missing"
     return jsonify(
         {
             "status": "ok",
@@ -77,6 +110,7 @@ def ask():
     question = (payload.get("question") or "").strip()
 
     if not question:
+        g.request_outcome = "invalid_input"
         return (
             jsonify(
                 {
@@ -89,9 +123,20 @@ def ask():
 
     try:
         outcome = ask_pipeline(question, corpus=config.CORPUS)
-    except Exception as exc:  # noqa: BLE001 — a reader gets this, not a traceback
-        return jsonify({"error": f"{type(exc).__name__}: {exc}"}), 500
+    except Exception:  # noqa: BLE001 — details belong in server logs, not responses
+        g.request_outcome = "error"
+        app.logger.exception("ask_failed request_id=%s", g.request_id)
+        return (
+            jsonify(
+                {
+                    "error": "The request failed. Check the server logs.",
+                    "request_id": g.request_id,
+                }
+            ),
+            500,
+        )
 
+    g.request_outcome = "refused" if outcome["refused"] else "answered"
     return jsonify(
         {
             "question": question,

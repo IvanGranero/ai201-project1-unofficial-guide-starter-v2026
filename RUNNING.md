@@ -203,7 +203,7 @@ stays up instead of a command that exits.
 
 ```bash
 python serve.py                    # locally, on port 5000
-gunicorn serve:app                 # the way a host starts it
+gunicorn --workers 1 --bind 127.0.0.1:8000 serve:app
 ```
 
 | Thing | What it does |
@@ -212,13 +212,36 @@ gunicorn serve:app                 # the way a host starts it
 | `GET /health` | Says whether the service is up and whether an index exists to search |
 | `PORT` | The port to listen on. Hosts set it for you; on your laptop it defaults to 5000 |
 | `AI201_DEBUG=1` | Flask's reloader and debugger. Local only — never set it on a deployed service |
+| `CHROMA_DIR` | Overrides the default `chroma_db/` location; use a persistent data directory on a server |
 
-> The free hosting tier sleeps after about fifteen minutes with no traffic, so
-> the first request after a quiet spell waits roughly a minute for it to wake
-> up. That's the tier, not your code.
+Every HTTP request writes a JSON log line with its request ID, route, status,
+outcome, and duration. On a systemd-managed server, view these with
+`journalctl -u ai201-rag -f`. The question and prompt are not logged.
 
-`serve.py` has **no logging and no timing in it on purpose** — building that is
-the unit 9 exercise, and it is easier to instrument something you wrote.
+### DigitalOcean Droplet
+
+Use Ubuntu 24.04 with Python 3.12 (also recorded in `.python-version`; the
+project supports Python 3.11–3.13).
+Install the requirements in a virtual environment, then run Gunicorn under
+systemd so it restarts if the process exits. Keep the Chroma data outside the
+Git checkout:
+
+```text
+CHROMA_DIR=/var/lib/ai201/chroma_db
+AI201_CORPUS=CVE_2026
+GEMINI_API_KEY=<set this privately on the server>
+```
+
+Copy the **entire** local `chroma_db/` directory to that location; it includes
+the SQLite database and Chroma's vector segment files. Do not copy only
+`chroma.sqlite3`, and do not commit `.env` or the database to Git.
+
+Run one Gunicorn worker on `127.0.0.1:8000` and put Nginx in front of it for
+public HTTP/HTTPS traffic. Restrict inbound traffic with the Droplet firewall.
+The project's `test.py` recommends 4 GiB for development and indexing. Serving
+a prebuilt index with one worker uses less, but 512 MiB may still run out of
+memory; monitor the service and resize if needed. Check `/health` for
+`"index_ready": true` after copying the index.
 
 ---
 

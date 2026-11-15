@@ -15,10 +15,14 @@ it sees are meaningless — it proves the plumbing, not the quality. The staff
 repo's `_staff/calibrate.py` covers quality, with the real model.
 """
 
+import io
+import json
+import logging
 import os
 import sys
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 os.environ["AI201_FAKE_EMBEDDINGS"] = "1"
 os.environ.setdefault("GEMINI_API_KEY", "smoke-test-not-a-real-key")
@@ -64,6 +68,46 @@ def fake_client():
 
 def main():
     print("AI201 unit 1 starter — smoke test\n" + "-" * 60)
+
+    from serve import app as service_app
+
+    log_output = io.StringIO()
+    log_handler = logging.StreamHandler(log_output)
+    log_handler.setFormatter(logging.Formatter("%(message)s"))
+    service_app.logger.addHandler(log_handler)
+    try:
+        response = service_app.test_client().post("/ask", json={})
+    finally:
+        service_app.logger.removeHandler(log_handler)
+
+    log_records = [
+        json.loads(line)
+        for line in log_output.getvalue().splitlines()
+        if line.startswith("{")
+    ]
+    request_log = log_records[-1] if log_records else {}
+    check(
+        "  HTTP requests include a request ID",
+        bool(response.headers.get("X-Request-ID")),
+    )
+    check(
+        "  HTTP requests log status and duration",
+        request_log.get("status_code") == 400
+        and request_log.get("outcome") == "invalid_input"
+        and isinstance(request_log.get("duration_ms"), (int, float)),
+    )
+
+    with patch("app.ask_pipeline", side_effect=RuntimeError("private detail")):
+        failed_response = service_app.test_client().post(
+            "/ask", json={"question": "test"}
+        )
+    check(
+        "  HTTP errors return a request ID without internal details",
+        failed_response.status_code == 500
+        and failed_response.get_json()["request_id"]
+        == failed_response.headers.get("X-Request-ID")
+        and "private detail" not in failed_response.get_data(as_text=True),
+    )
 
     # Route every model call to the fake.
     generate._client = fake_client()

@@ -76,7 +76,7 @@ CACHE_DIR = ROOT / ".cache"
 # ─── Paths ───────────────────────────────────────────────────────────────────
 
 CORPORA_DIR = ROOT / "corpora"
-CHROMA_DIR = ROOT / "chroma_db"
+CHROMA_DIR = Path(os.getenv("CHROMA_DIR", str(ROOT / "chroma_db"))).expanduser()
 RESULTS_DIR = ROOT / "results"
 
 
