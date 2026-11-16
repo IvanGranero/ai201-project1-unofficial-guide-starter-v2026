@@ -102,3 +102,77 @@ Severity is one of the most important metadata fields for cybersecurity triage, 
      The whole reason the originals stay visible is so someone can see what you
      said before you knew the answer.
      ───────────────────────────────────────────────────────────────────────── -->
+
+## Deployment Criteria — Shape A: Deploy and Instrument
+
+These five criteria measure the deployed service and the operational layer
+added for Shape A. The Unit 1 criteria above remain unchanged as the baseline
+for the RAG behavior.
+
+### 1. Public health check includes a ready index
+
+For 10 consecutive checks, one per minute, all 10 authenticated requests to
+`https://granero.space/health` return HTTP 200 and JSON with
+`"index_ready": true`.
+
+**Why this target:**
+An HTTP response alone is not enough: the service can be up while the CVE
+index is missing, making every question fail. I require 10 of 10 because the
+Droplet and index should stay available throughout this short test. Ten checks
+are enough to catch an obvious startup or persistence problem without
+pretending this small single-Droplet test establishes a long-term uptime SLA.
+
+### 2. Hosted CVE questions retrieve their expected records
+
+For these five prompts submitted through the public form — “What is
+CVE-2026-9022?”, “What is CVE-2026-21444?”, “What is CVE-2026-49975?”, “What
+is CVE-2026-6409?”, and “What is CVE-2026-23268?” — at least 4 of 5 responses
+return HTTP 200, set `"refused": false`, and include the corresponding exact
+filename (`CVE-2026-9022.json`, `CVE-2026-21444.json`,
+`CVE-2026-49975.json`, `CVE-2026-6409.json`, or `CVE-2026-23268.json`) in
+`sources`.
+
+**Why this target:**
+This exercises the entire new online path, from the public form through
+retrieval and Gemini generation, with a specific expected source instead of a
+subjective judgment about answer quality. I allow one miss because the
+external model service or network can fail transiently; fewer than 4 of 5
+would mean the deployed path is too inconsistent for a class demo.
+
+### 3. Authentication protects both the page and API
+
+Over HTTPS, requests without credentials to `GET /` and `POST /ask` both
+return HTTP 401. With the shared class login, `GET /` returns HTTP 200.
+
+**Why this target:**
+Protecting only the page would leave the API callable directly and could let
+unauthorized users consume my Gemini quota. These three checks cover both
+entry points and confirm authorized classmates can reach the form; anything
+less leaves an important access path untested.
+
+### 4. Rejected input is both returned and logged
+
+On a `POST /ask` with JSON `{"question":""}`, the service returns HTTP 400 and
+the systemd journal contains a matching request record with status 400 and
+`"outcome":"invalid_input"`; the log's request ID matches the response's
+`X-Request-ID` header.
+
+**Why this target:**
+Empty input is a deterministic bad path that should be rejected before
+retrieval or a model call. I require the response and log to agree on the
+failure so it cannot disappear as an unexplained missing answer. One
+reproducible test is sufficient for this deterministic validation path.
+
+### 5. Every measured request has usable instrumentation
+
+For 10 sequential successful `POST /ask` requests, each response has exactly
+one matching JSON journal entry containing its request ID, status code 200,
+numeric non-negative `duration_ms`, and `"outcome":"answered"`.
+
+**Why this target:**
+The request ID and outcome make individual successes traceable, while
+duration lets me measure request time. Ten entries provide a small repeatable
+sample; a smaller sample could be dominated by one cold request, and a much
+larger sample would add API usage without being necessary for this class
+deployment check. Requiring exactly one matching entry makes missing or
+duplicate logs visible.
