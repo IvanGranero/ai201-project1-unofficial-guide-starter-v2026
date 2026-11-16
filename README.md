@@ -2,6 +2,12 @@
 
 Ivan Granero. I picked my own corpus extracted from https://www.cve.org/Downloads
 
+## Live Demo
+
+Try the deployed CVE Guide at [https://granero.space/](https://granero.space/).
+The site is password-protected; access credentials are shared separately and
+are not included in this repository.
+
 ---
 
 # Unit 1
@@ -247,21 +253,67 @@ Criterion 2 and 5 is still a missed, Criterion 2 failed a couple of times becaus
 
 If I were writing these five criteria from scratch again, I'd revise Criterion 5 ("Correct severity surfaced"). Sounds like a retrieval or generation quality issue, but this whole unit showed it was actually two separate, sequential problems bundled into one number: first, severity wasn't even in the embedded text (a chunking bug), and second, once it was, the model still wouldn't surface it consistently. A single pass/fail criterion couldn't distinguish "the data isn't there" from "the data is there but the model isn't told to use it". Next time I'd split it into two criteria, something like "severity is present in the retrieved chunk text" and "severity is stated in the final answer when present in the chunk", so a failure tells me immediately which half of the pipeline to fix instead of leaving me to diagnose it by hand.
 
-## The System
+## Capstone
+
+### How I Used AI
+
+I used AI as a deployment guide while I moved the existing CVE RAG from my
+laptop to a DigitalOcean Droplet. After comparing hosting options, I chose a
+Droplet so I could keep the prebuilt Chroma index on persistent disk and run
+the app behind a service manager. I set the domain's DNS records, copied the
+index to `/var/lib/ai201/chroma_db`, and configured `CHROMA_DIR` and
+`AI201_CORPUS=CVE_2026`.
+
+AI walked me through running one Gunicorn worker on localhost, with Nginx
+handling public HTTPS traffic and Basic Auth. These were the key commands and
+configuration steps I used:
+
+```bash
+sudo apt update
+sudo apt install -y nginx apache2-utils certbot python3-certbot-nginx
+gunicorn --workers 1 --bind 127.0.0.1:8000 serve:app
+sudo htpasswd -cB /etc/nginx/.htpasswd classmates
+sudo certbot --nginx -d granero.space -d www.granero.space
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+In the Nginx HTTPS server block, I enabled Basic Auth with:
+
+```nginx
+auth_basic "CVE Guide";
+auth_basic_user_file /etc/nginx/.htpasswd;
+```
+
+I kept the password and Gemini API key out of the README and set them
+interactively or privately on the server. To check the deployment, I used the
+health endpoint and inspected the service state and request logs:
+
+```bash
+curl --user classmates https://granero.space/health
+sudo systemctl status ai201-rag --no-pager
+sudo journalctl -u ai201-rag --since "10 minutes ago" -o cat --no-pager
+```
+
+When I saw a 502, AI helped me check systemd and the journal; the service was
+inactive, rather than crashing inside the RAG code. I ran the suggested
+commands myself, checked their output, and used the returned request IDs to
+match HTTP responses to server logs.
+
+### The System
 
 I chose this RAG because I had already developed it for a CVE corpus and know how its pieces work, from loading and chunking CVE records to vector search, the relevance gate, and answer generation. I have already encountered retrieval problems involving product versions and severity, so I have a good starting point for anticipating failure modes and deciding what to measure when I deploy it.
 
-## The Shape
+### The Shape
 
 **A — Deploy and instrument.** I will deploy the existing Flask service so the CVE RAG can answer questions online, keep its Chroma index on persistent storage, and add request logging and timing. I will check that the deployed service is healthy and record how it performs on a few CVE questions. The goal is to make the current system run reliably and visibly in production, not to change how it retrieves or answers.
 
-## Out of Scope
+### Out of Scope
 
 - I am not building a separate frontend framework or a complex interface; the UI is one simple Flask-served form.
 - I am not changing the chunking, embeddings, or retrieval strategy.
 - I am not adding user accounts or multiple service instances.
 
-## Instrumentation
+### Instrumentation
 
 The deployed service logs each HTTP request as JSON in the systemd journal. These ten successful `/ask` requests and one rejected-input request were collected with `journalctl -u ai201-rag --since "30 minutes ago" -o cat --no-pager`. The logs record request ID, method, path, status, duration, and outcome; they do not include the question or prompt.
 
@@ -286,27 +338,27 @@ Rejected-input run (empty question, HTTP 400):
 {"event":"http_request","request_id":"47c244e1be6843efbae32ec617a19b61","method":"POST","path":"/ask","status_code":400,"duration_ms":0.25,"outcome":"invalid_input"}
 ```
 
-## What It Costs
+### What It Costs
 
-In deployment Run 1, the mean end-to-end duration for ten answered HTTP
-requests was **349.16 ms**; the median was **8.4 ms**, with a range of
-**7.11–1342.07 ms**. Method: arithmetic mean and median of the ten
-`duration_ms` values in the systemd journal. This is elapsed request time,
-including retrieval, cache lookup, and any model-service wait—not CPU-only
-time or billed Gemini token usage.
+The measured per-run number is mean end-to-end `/ask` duration from the ten
+answered requests whose response IDs were matched to systemd journal entries:
 
-In deployment Run 2, the ten correlated answered requests had a mean duration
-of **8.67 ms**, a median of **8.585 ms**, and a range of **7.68–9.48 ms**.
+- **Run 1:** `3491.56 ms / 10 = 349.16 ms` mean; median **8.395 ms**; range **7.11–1342.07 ms**.
+- **Run 2:** `86.67 ms / 10 = 8.67 ms` mean; median **8.585 ms**; range **7.68–9.48 ms**.
+- **Run 3:** `85.39 ms / 10 = 8.54 ms` mean; median **8.635 ms**; range **7.86–9.01 ms**.
 
-In deployment Run 3, the ten correlated answered requests had a mean duration
-of **8.54 ms**, a median of **8.635 ms**, and a range of **7.86–9.01 ms**.
+I calculated these from each correlated log's `duration_ms` field; this is
+elapsed request time, not CPU time or a measured Gemini charge. The large
+Run 1 mean-to-median gap suggests cache effects, but cache hits are not logged.
 
-Run 1's low median and much higher mean suggest that some requests were served
-from the response cache, but cache status is not in the request logs. These
-measurements describe request latency with caching as configured; they are
-not the cost of ten uncached Gemini calls.
+At one question per person per day, the 1 GiB Basic DigitalOcean Droplet's
+fixed hosting allocation is **$0.002/request** (`$6 ÷ (30 × 100)`), so
+**100 requests/day × $0.002/request = $0.20/day** (about **$6/month**) at its
+[published base rate](https://www.digitalocean.com/pricing/droplets); this
+excludes Gemini API charges, which cannot be calculated from these runs
+because per-request token usage is not recorded.
 
-## Deployment Run Log — Shape A
+### Deployment Run Log — Shape A
 
 All three runs are complete, and each criterion met its target in all three
 runs. The Run 3 command reused the Run 2 output filename, so
@@ -321,9 +373,9 @@ transcript; Run 2's evidence is recorded in this README.
 | 4. Rejected input is both returned and logged | HTTP 400 and log entry with the same request ID | Pass | Pass | Pass | MET |
 | 5. Each answered request has a matching instrumentation event | 10/10 response IDs have exactly one matching log entry | 10/10 | 10/10 | 10/10 | MET |
 
-### Run 1 — actual output
+#### Run 1 — actual output
 
-#### Criterion 1 — `serve.py::health`
+##### Criterion 1 — `serve.py::health`
 
 ```text
 Check 1: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
@@ -338,7 +390,7 @@ Check 9: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"stat
 Check 10: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
 ```
 
-#### Criterion 2 — `serve.py::ask` → `app.py::ask_pipeline`
+##### Criterion 2 — `serve.py::ask` → `app.py::ask_pipeline`
 
 ```text
 HTTP/1.1 200 OK
@@ -357,7 +409,7 @@ HTTP/1.1 200 OK
 {"answer":"CVE-2026-23268 is a vulnerability in the Linux kernel's apparmor component where an unprivileged local user can perform privileged policy management (loading, replacing, and removing profiles) by opening apparmorfs interfaces via a confused deputy attack, passing the opened file descriptor to a privileged process, and having that privileged process write to the interface. \n\nSeverity: HIGH (CVSS cvssV3_1 score: 7.8)\n\nSource: CVE-2026-23268.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-23268?","refused":false,"sources":["CVE-2026-23268.json"],"threshold":0.5}
 ```
 
-#### Criterion 3 — Nginx Basic Auth and `serve.py::home`
+##### Criterion 3 — Nginx Basic Auth and `serve.py::home`
 
 ```text
 GET / run 1: HTTP 401
@@ -369,7 +421,7 @@ POST /ask run 3: HTTP 401
 GET /: HTTP 200, X-Request-ID=36a1543611a74a208a21429672ccfa59
 ```
 
-#### Criterion 4 — `serve.py::ask` and `serve.py::log_request`
+##### Criterion 4 — `serve.py::ask` and `serve.py::log_request`
 
 ```text
 HTTP/1.1 400 BAD REQUEST
@@ -379,7 +431,7 @@ X-Request-ID: 18609d4eb90645a2a5cffac0e0cb8a62
 {"event":"http_request","request_id":"18609d4eb90645a2a5cffac0e0cb8a62","method":"POST","path":"/ask","status_code":400,"duration_ms":0.22,"outcome":"invalid_input"}
 ```
 
-#### Criterion 5 — `serve.py::log_request`, matched by response ID
+##### Criterion 5 — `serve.py::log_request`, matched by response ID
 
 ```text
 {"event":"http_request","request_id":"21b57aef04be4ed1879ec26e357a6f84","method":"POST","path":"/ask","status_code":200,"duration_ms":889.56,"outcome":"answered"}
@@ -394,12 +446,12 @@ X-Request-ID: 18609d4eb90645a2a5cffac0e0cb8a62
 {"event":"http_request","request_id":"2bc911d59b5b4dcc8b140f2e0d64da7d","method":"POST","path":"/ask","status_code":200,"duration_ms":8.28,"outcome":"answered"}
 ```
 
-### Run 2 — actual output
+#### Run 2 — actual output
 
 Run 2's output is preserved in the per-criterion excerpts below. Its local
 transcript was overwritten when the Run 3 command reused the same filename.
 
-#### Criterion 1 — `serve.py::health`
+##### Criterion 1 — `serve.py::health`
 
 ```text
 Check 1/10 at 2026-11-15T21:12:12-05:00
@@ -435,7 +487,7 @@ Health check 10: HTTP 200, X-Request-ID=92e38f1e98ea499ba027f524fb59e9a7
 Criterion 1 total: 10/10
 ```
 
-#### Criterion 2 — `serve.py::ask` → `app.py::ask_pipeline`
+##### Criterion 2 — `serve.py::ask` → `app.py::ask_pipeline`
 
 ```text
 CVE prompt: What is CVE-2026-9022?: HTTP 200, X-Request-ID=d2449be1d42149a280a307c44d2d2937
@@ -451,7 +503,7 @@ Expected CVE-2026-23268.json: PASS
 Criterion 2 total: 5/5 (target: at least 4/5)
 ```
 
-#### Criterion 3 — Nginx Basic Auth and `serve.py::home`
+##### Criterion 3 — Nginx Basic Auth and `serve.py::home`
 
 ```text
 Unauthenticated GET /: HTTP 401, X-Request-ID=(none)
@@ -460,7 +512,7 @@ Authenticated GET /: HTTP 200, X-Request-ID=624e072049b440098c9a0cad1686a68b
 Criterion 3: PASS (expected 401, 401, 200)
 ```
 
-#### Criterion 4 — `serve.py::ask` and `serve.py::log_request`
+##### Criterion 4 — `serve.py::ask` and `serve.py::log_request`
 
 ```text
 Empty-question POST /ask: HTTP 400, X-Request-ID=ffdfab8563f64ee2a0afaa54a2075ced
@@ -469,7 +521,7 @@ Empty-question POST /ask: HTTP 400, X-Request-ID=ffdfab8563f64ee2a0afaa54a2075ce
 {"event":"http_request","request_id":"ffdfab8563f64ee2a0afaa54a2075ced","method":"POST","path":"/ask","status_code":400,"duration_ms":0.19,"outcome":"invalid_input"}
 ```
 
-#### Criterion 5 — `serve.py::log_request`, matched by response ID
+##### Criterion 5 — `serve.py::log_request`, matched by response ID
 
 ```text
 {"event":"http_request","request_id":"ccb76204b1bb48b6af5a9ae6e78f404a","method":"POST","path":"/ask","status_code":200,"duration_ms":8.42,"outcome":"answered"}
@@ -484,13 +536,13 @@ Empty-question POST /ask: HTTP 400, X-Request-ID=ffdfab8563f64ee2a0afaa54a2075ce
 {"event":"http_request","request_id":"59f9fdab10b54a568e7ae0f16c242ee1","method":"POST","path":"/ask","status_code":200,"duration_ms":7.68,"outcome":"answered"}
 ```
 
-### Run 3 — actual output
+#### Run 3 — actual output
 
 The transcript file is named [run2-client-output.txt](./run2-client-output.txt)
 because the Run 3 command reused that filename. The timestamps, response IDs,
 and matching Droplet logs below are from Run 3.
 
-#### Criterion 1 — `serve.py::health`
+##### Criterion 1 — `serve.py::health`
 
 ```text
 Check 1/10 at 2026-11-15T21:27:04-05:00
@@ -526,7 +578,7 @@ Health check 10: HTTP 200, X-Request-ID=d9eeb9317de34e379f1dc48bcb3b1097
 Criterion 1 total: 10/10
 ```
 
-#### Criterion 2 — `serve.py::ask` → `app.py::ask_pipeline`
+##### Criterion 2 — `serve.py::ask` → `app.py::ask_pipeline`
 
 ```text
 CVE prompt: What is CVE-2026-9022?: HTTP 200, X-Request-ID=4a537aa8193b46c9b9b6aa987e7811d8
@@ -542,7 +594,7 @@ Expected CVE-2026-23268.json: PASS
 Criterion 2 total: 5/5 (target: at least 4/5)
 ```
 
-#### Criterion 3 — Nginx Basic Auth and `serve.py::home`
+##### Criterion 3 — Nginx Basic Auth and `serve.py::home`
 
 ```text
 Unauthenticated GET /: HTTP 401, X-Request-ID=(none)
@@ -551,7 +603,7 @@ Authenticated GET /: HTTP 200, X-Request-ID=d96ca93919e34adea6309da4e0d2c541
 Criterion 3: PASS (expected 401, 401, 200)
 ```
 
-#### Criterion 4 — `serve.py::ask` and `serve.py::log_request`
+##### Criterion 4 — `serve.py::ask` and `serve.py::log_request`
 
 ```text
 Empty-question POST /ask: HTTP 400, X-Request-ID=4dcf2de01bd8413e9521ad08daf0a888
@@ -560,7 +612,7 @@ Empty-question POST /ask: HTTP 400, X-Request-ID=4dcf2de01bd8413e9521ad08daf0a88
 {"event":"http_request","request_id":"4dcf2de01bd8413e9521ad08daf0a888","method":"POST","path":"/ask","status_code":400,"duration_ms":0.37,"outcome":"invalid_input"}
 ```
 
-#### Criterion 5 — `serve.py::log_request`, matched by response ID
+##### Criterion 5 — `serve.py::log_request`, matched by response ID
 
 ```text
 {"event":"http_request","request_id":"a231bc0aaf444fd38e0fa6df35919c73","method":"POST","path":"/ask","status_code":200,"duration_ms":8.91,"outcome":"answered"}
@@ -575,9 +627,9 @@ Empty-question POST /ask: HTTP 400, X-Request-ID=4dcf2de01bd8413e9521ad08daf0a88
 {"event":"http_request","request_id":"1b210e47e166429c80f2ff2c01cfc7f0","method":"POST","path":"/ask","status_code":200,"duration_ms":8.06,"outcome":"answered"}
 ```
 
-## Before/after: server-side question validation
+### Before/after: server-side question validation
 
-### Baseline diagnosis
+#### Baseline diagnosis
 
 All five original criteria were **MET** in each of the three baseline runs, so
 there were no measured acceptance misses to attribute to a pipeline stage.
@@ -597,7 +649,7 @@ HTTP 500
 {"event":"http_request","request_id":"12bb3857e46347e1a0f6646f60f47c95","method":"POST","path":"/ask","status_code":500,"duration_ms":2.1,"outcome":"completed"}
 ```
 
-### One improvement and tightened follow-up target
+#### One improvement and tightened follow-up target
 
 `serve.py::ask` now verifies that `question` is a string before trimming it.
 Missing, empty, and non-string values take the existing HTTP 400
@@ -609,7 +661,7 @@ The follow-up tightens it: in each run, test both an empty string and a
 numeric question; require both responses to be HTTP 400 with exactly one
 matching `invalid_input` journal event per response ID (2/2 cases).
 
-### Before-and-after run results
+#### Before-and-after run results
 
 The “before” columns are the three completed deployment runs above. The
 “after” columns represent full follow-up runs across all five criteria and
@@ -633,7 +685,7 @@ PASS HTTP 400; request_id=c466ab5b93604ab19076384587abc8c9; log=invalid_input
 PASS HTTP 400; request_id=d6ac108f8d8c4a409e5b1869813610b0; log=invalid_input
 ```
 
-### Remote probe before deployment — not an after run
+#### Remote probe before deployment — not an after run
 
 The six remote probes below were sent before the updated handler was deployed.
 They are not counted as follow-up runs: empty input returned 400 three times,
@@ -649,7 +701,7 @@ was still exhibiting the pre-change behavior.
 {"event":"http_request","request_id":"6029d0879dc54a098c74e1cf317a790f","method":"POST","path":"/ask","status_code":500,"duration_ms":3.19,"outcome":"completed"}
 ```
 
-### Targeted post-deployment validation — tightened Criterion 4
+#### Targeted post-deployment validation — tightened Criterion 4
 
 The focused validation was then repeated three times against the updated
 deployment. Both input types returned HTTP 400 in all three trials, and all
@@ -678,4 +730,21 @@ Trial 3 non-string: HTTP 400, X-Request-ID=d46bd51bc2ee435cb3207389d63ef07b
 **Targeted result:** tightened Criterion 4 is **MET** (3/3 empty inputs and
 3/3 non-string inputs returned HTTP 400 with matching logs). This is not a
 full after run of the other four criteria.
+
+### What's Still Broken — Shape A
+
+No original Shape A criterion was missed: all five were MET in each of the
+three baseline runs. The target I had set too narrowly was Criterion 4, which
+tested only an empty string; I tightened it to empty and numeric inputs, and
+the focused deployed recheck passed 3/3 for each. I stopped after that
+focused recheck because the requested scope was to validate the input-handling
+improvement; the other four criteria have not been re-run against the updated
+deployment, so their post-change results are still unmeasured.
+
+### What I'd Do Next
+
+With another unit, I would first add per-request model token counts and cache
+hit/miss status to the structured request log. That would let me estimate
+Gemini cost per user from actual usage rather than treating HTTP duration as
+a cost proxy.
 
