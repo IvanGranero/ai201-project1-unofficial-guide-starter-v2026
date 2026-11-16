@@ -288,7 +288,290 @@ Rejected-input run (empty question, HTTP 400):
 
 ## What It Costs
 
-For these ten answered HTTP requests, the mean end-to-end request duration was **103.63 ms**. Method: arithmetic mean of the ten `duration_ms` values logged by the service (`1036.31 ms / 10`). This is elapsed request time, including any retrieval, cache lookup, and model-service wait; it is not CPU-only time or billed Gemini token usage.
+In deployment Run 1, the mean end-to-end duration for ten answered HTTP
+requests was **349.16 ms**; the median was **8.4 ms**, with a range of
+**7.11–1342.07 ms**. Method: arithmetic mean and median of the ten
+`duration_ms` values in the systemd journal. This is elapsed request time,
+including retrieval, cache lookup, and any model-service wait—not CPU-only
+time or billed Gemini token usage.
 
-The first request took 956.43 ms, while the other nine took 7.73–9.88 ms. This strongly suggests the repeats were served from the response cache.
+In deployment Run 2, the ten correlated answered requests had a mean duration
+of **8.67 ms**, a median of **8.585 ms**, and a range of **7.68–9.48 ms**.
+
+In deployment Run 3, the ten correlated answered requests had a mean duration
+of **8.54 ms**, a median of **8.635 ms**, and a range of **7.86–9.01 ms**.
+
+Run 1's low median and much higher mean suggest that some requests were served
+from the response cache, but cache status is not in the request logs. These
+measurements describe request latency with caching as configured; they are
+not the cost of ten uncached Gemini calls.
+
+## Deployment Run Log — Shape A
+
+All three runs are complete, and each criterion met its target in all three
+runs. The Run 3 command reused the Run 2 output filename, so
+[run2-client-output.txt](./run2-client-output.txt) now contains Run 3's client
+transcript; Run 2's evidence is recorded in this README.
+
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. Public health check includes a ready index | 10/10 | 10/10 | 10/10 | 10/10 | MET |
+| 2. Hosted CVE questions retrieve their expected records | At least 4/5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Authentication protects both the page and API | Unauthenticated requests: 401; authenticated page: 200 | Pass | Pass | Pass | MET |
+| 4. Rejected input is both returned and logged | HTTP 400 and log entry with the same request ID | Pass | Pass | Pass | MET |
+| 5. Each answered request has a matching instrumentation event | 10/10 response IDs have exactly one matching log entry | 10/10 | 10/10 | 10/10 | MET |
+
+### Run 1 — actual output
+
+#### Criterion 1 — `serve.py::health`
+
+```text
+Check 1: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 2: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 3: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 4: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 5: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 6: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 7: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 8: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 9: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 10: HTTP 200 {"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+```
+
+#### Criterion 2 — `serve.py::ask` → `app.py::ask_pipeline`
+
+```text
+HTTP/1.1 200 OK
+{"answer":"CVE-2026-9022 is a Stored Cross-Site Scripting vulnerability in the Splide Carousel Block plugin for WordPress (up to and including version 1.7.1) via the 'url' Block Attribute, caused by insufficient input sanitization and output escaping. This allows authenticated attackers with contributor-level access and above to inject arbitrary web scripts. The vulnerability has a MEDIUM severity with a CVSS v3.1 score of 6.4.\n\nSource: CVE-2026-9022.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-9022?","refused":false,"sources":["CVE-2026-9022.json"],"threshold":0.5}
+
+HTTP/1.1 200 OK
+{"answer":"CVE-2026-21444 is a vulnerability in libtpms (versions 0.10.0 and 0.10.1) where the library returns the wrong initialization vector (the initial IV instead of the last IV) to the caller when certain symmetric ciphers are used with OpenSSL 3.x. This weakens subsequent encryption and decryption steps, with the highest threat being to data confidentiality. \n\nSeverity: MEDIUM (CVSS v3.1 score: 5.5)\nWeakness type: CWE-327 (Use of a Broken or Risky Cryptographic Algorithm)\n\nSource: CVE-2026-21444.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-21444?","refused":false,"sources":["CVE-2026-21444.json"],"threshold":0.5}
+
+HTTP/1.1 200 OK
+{"answer":"CVE-2026-49975 is a Memory Allocation with Excessive Size Value vulnerability (CWE-789) in Apache HTTP Server's mod_http2 (mod_http) that leads to a denial of service via malicious HTTP requests. This issue affects Apache HTTP Server versions from 2.4.17 through 2.4.67 (up to and including 2.4.67). \n\nSource: CVE-2026-49975.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-49975?","refused":false,"sources":["CVE-2026-49975.json"],"threshold":0.5}
+
+HTTP/1.1 200 OK
+{"answer":"CVE-2026-6409 is a Denial of Service (DoS) vulnerability in the Protobuf PHP library (Protocol Buffers Protobuf-php (Pecl)) that occurs during the parsing of untrusted input. Maliciously structured messages containing negative varints or deep recursion can crash the application and impact service availability. \n\nThe vulnerability has a HIGH severity with a CVSS cvssV4_0 score of 7.1, and is associated with weakness type CWE-20 (Improper input validation).\n\nSource: CVE-2026-6409.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-6409?","refused":false,"sources":["CVE-2026-6409.json"],"threshold":0.5}
+
+HTTP/1.1 200 OK
+{"answer":"CVE-2026-23268 is a vulnerability in the Linux kernel's apparmor component where an unprivileged local user can perform privileged policy management (loading, replacing, and removing profiles) by opening apparmorfs interfaces via a confused deputy attack, passing the opened file descriptor to a privileged process, and having that privileged process write to the interface. \n\nSeverity: HIGH (CVSS cvssV3_1 score: 7.8)\n\nSource: CVE-2026-23268.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-23268?","refused":false,"sources":["CVE-2026-23268.json"],"threshold":0.5}
+```
+
+#### Criterion 3 — Nginx Basic Auth and `serve.py::home`
+
+```text
+GET / run 1: HTTP 401
+GET / run 2: HTTP 401
+GET / run 3: HTTP 401
+POST /ask run 1: HTTP 401
+POST /ask run 2: HTTP 401
+POST /ask run 3: HTTP 401
+GET /: HTTP 200, X-Request-ID=36a1543611a74a208a21429672ccfa59
+```
+
+#### Criterion 4 — `serve.py::ask` and `serve.py::log_request`
+
+```text
+HTTP/1.1 400 BAD REQUEST
+X-Request-ID: 18609d4eb90645a2a5cffac0e0cb8a62
+{"error":"Send JSON with a question in it, like {\"question\": \"is the housing lottery random?\"}"}
+
+{"event":"http_request","request_id":"18609d4eb90645a2a5cffac0e0cb8a62","method":"POST","path":"/ask","status_code":400,"duration_ms":0.22,"outcome":"invalid_input"}
+```
+
+#### Criterion 5 — `serve.py::log_request`, matched by response ID
+
+```text
+{"event":"http_request","request_id":"21b57aef04be4ed1879ec26e357a6f84","method":"POST","path":"/ask","status_code":200,"duration_ms":889.56,"outcome":"answered"}
+{"event":"http_request","request_id":"aad3297650da416d9cd74d0011fffeb2","method":"POST","path":"/ask","status_code":200,"duration_ms":1342.07,"outcome":"answered"}
+{"event":"http_request","request_id":"7f054c034d7948568da9884cbe7e0507","method":"POST","path":"/ask","status_code":200,"duration_ms":1204.45,"outcome":"answered"}
+{"event":"http_request","request_id":"9a564126610f42f8ad2a7a65c4b4729a","method":"POST","path":"/ask","status_code":200,"duration_ms":7.91,"outcome":"answered"}
+{"event":"http_request","request_id":"16b86c8aa3ed43f0a447dfa3c7d646a9","method":"POST","path":"/ask","status_code":200,"duration_ms":7.11,"outcome":"answered"}
+{"event":"http_request","request_id":"47677ff094a3477ebc0853d771bd7084","method":"POST","path":"/ask","status_code":200,"duration_ms":8.57,"outcome":"answered"}
+{"event":"http_request","request_id":"eeeb6b5c3c94411baa7d041f12bd2052","method":"POST","path":"/ask","status_code":200,"duration_ms":7.69,"outcome":"answered"}
+{"event":"http_request","request_id":"d9a88c4ccc8a46fdb028d9cd37796a29","method":"POST","path":"/ask","status_code":200,"duration_ms":8.51,"outcome":"answered"}
+{"event":"http_request","request_id":"a996570a31a643739bdfb86eead192d7","method":"POST","path":"/ask","status_code":200,"duration_ms":7.41,"outcome":"answered"}
+{"event":"http_request","request_id":"2bc911d59b5b4dcc8b140f2e0d64da7d","method":"POST","path":"/ask","status_code":200,"duration_ms":8.28,"outcome":"answered"}
+```
+
+### Run 2 — actual output
+
+The full client transcript, including all five CVE response bodies, is saved
+in [run2-client-output.txt](./run2-client-output.txt).
+
+#### Criterion 1 — `serve.py::health`
+
+```text
+Check 1/10 at 2026-11-15T21:12:12-05:00
+Health check 1: HTTP 200, X-Request-ID=2780d5d8e62048f8b9e2fd8948ae373f
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 2/10 at 2026-11-15T21:13:12-05:00
+Health check 2: HTTP 200, X-Request-ID=b49831eb365c4112aad9cf8f3769c727
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 3/10 at 2026-11-15T21:14:12-05:00
+Health check 3: HTTP 200, X-Request-ID=cad0e17414b84209be979d08c9ed0a62
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 4/10 at 2026-11-15T21:15:12-05:00
+Health check 4: HTTP 200, X-Request-ID=507840626e634353b1215d3173e15b39
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 5/10 at 2026-11-15T21:16:12-05:00
+Health check 5: HTTP 200, X-Request-ID=8c3c86a475e94c98b16b1591308b73c3
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 6/10 at 2026-11-15T21:17:12-05:00
+Health check 6: HTTP 200, X-Request-ID=e55b8451cfe647628d1251f7215c5eb1
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 7/10 at 2026-11-15T21:18:12-05:00
+Health check 7: HTTP 200, X-Request-ID=56b6e51b47354868a617fe5343772c4c
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 8/10 at 2026-11-15T21:19:12-05:00
+Health check 8: HTTP 200, X-Request-ID=d93ca1ce20414f2a9c0fdc5b5922d44a
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 9/10 at 2026-11-15T21:20:12-05:00
+Health check 9: HTTP 200, X-Request-ID=3bf543810603495da32a3593a8652bcc
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 10/10 at 2026-11-15T21:21:12-05:00
+Health check 10: HTTP 200, X-Request-ID=92e38f1e98ea499ba027f524fb59e9a7
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Criterion 1 total: 10/10
+```
+
+#### Criterion 2 — `serve.py::ask` → `app.py::ask_pipeline`
+
+```text
+CVE prompt: What is CVE-2026-9022?: HTTP 200, X-Request-ID=d2449be1d42149a280a307c44d2d2937
+Expected CVE-2026-9022.json: PASS
+CVE prompt: What is CVE-2026-21444?: HTTP 200, X-Request-ID=4f2f78844703450e9fc11a8a23a8bb92
+Expected CVE-2026-21444.json: PASS
+CVE prompt: What is CVE-2026-49975?: HTTP 200, X-Request-ID=8750c96f401e4388b2a91d1b82718127
+Expected CVE-2026-49975.json: PASS
+CVE prompt: What is CVE-2026-6409?: HTTP 200, X-Request-ID=24abde50c11b4b6aa1163356057ec70f
+Expected CVE-2026-6409.json: PASS
+CVE prompt: What is CVE-2026-23268?: HTTP 200, X-Request-ID=36fc322c696846948d48a2966ed6ff7d
+Expected CVE-2026-23268.json: PASS
+Criterion 2 total: 5/5 (target: at least 4/5)
+```
+
+#### Criterion 3 — Nginx Basic Auth and `serve.py::home`
+
+```text
+Unauthenticated GET /: HTTP 401, X-Request-ID=(none)
+Unauthenticated POST /ask: HTTP 401, X-Request-ID=(none)
+Authenticated GET /: HTTP 200, X-Request-ID=624e072049b440098c9a0cad1686a68b
+Criterion 3: PASS (expected 401, 401, 200)
+```
+
+#### Criterion 4 — `serve.py::ask` and `serve.py::log_request`
+
+```text
+Empty-question POST /ask: HTTP 400, X-Request-ID=ffdfab8563f64ee2a0afaa54a2075ced
+{"error":"Send JSON with a question in it, like {\"question\": \"is the housing lottery random?\"}"}
+
+{"event":"http_request","request_id":"ffdfab8563f64ee2a0afaa54a2075ced","method":"POST","path":"/ask","status_code":400,"duration_ms":0.19,"outcome":"invalid_input"}
+```
+
+#### Criterion 5 — `serve.py::log_request`, matched by response ID
+
+```text
+{"event":"http_request","request_id":"ccb76204b1bb48b6af5a9ae6e78f404a","method":"POST","path":"/ask","status_code":200,"duration_ms":8.42,"outcome":"answered"}
+{"event":"http_request","request_id":"9ffadddedbe14d8983b5c083d447a900","method":"POST","path":"/ask","status_code":200,"duration_ms":8.74,"outcome":"answered"}
+{"event":"http_request","request_id":"813a5b0f1bf94f76a53dfb555b1249d3","method":"POST","path":"/ask","status_code":200,"duration_ms":8.43,"outcome":"answered"}
+{"event":"http_request","request_id":"214b1c884ba345068d2307d6b64a479b","method":"POST","path":"/ask","status_code":200,"duration_ms":9.4,"outcome":"answered"}
+{"event":"http_request","request_id":"d03f7261696d44af90897f3be43838e7","method":"POST","path":"/ask","status_code":200,"duration_ms":9.48,"outcome":"answered"}
+{"event":"http_request","request_id":"d9fb0172dad0404da99c02a4d1909265","method":"POST","path":"/ask","status_code":200,"duration_ms":9.2,"outcome":"answered"}
+{"event":"http_request","request_id":"a2014bc327fc4297be0fdeee89d64678","method":"POST","path":"/ask","status_code":200,"duration_ms":7.89,"outcome":"answered"}
+{"event":"http_request","request_id":"2e9ede132d2345b4bb11d7a305a9ccd3","method":"POST","path":"/ask","status_code":200,"duration_ms":8.32,"outcome":"answered"}
+{"event":"http_request","request_id":"089c528c0a4a4f0ab5b69197c1dd8ffc","method":"POST","path":"/ask","status_code":200,"duration_ms":9.11,"outcome":"answered"}
+{"event":"http_request","request_id":"59f9fdab10b54a568e7ae0f16c242ee1","method":"POST","path":"/ask","status_code":200,"duration_ms":7.68,"outcome":"answered"}
+```
+
+### Run 3 — actual output
+
+The transcript file is named [run2-client-output.txt](./run2-client-output.txt)
+because the Run 3 command reused that filename. The timestamps, response IDs,
+and matching Droplet logs below are from Run 3.
+
+#### Criterion 1 — `serve.py::health`
+
+```text
+Check 1/10 at 2026-11-15T21:27:04-05:00
+Health check 1: HTTP 200, X-Request-ID=118d4b9c031f46acac9c6a3fb3683984
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 2/10 at 2026-11-15T21:28:04-05:00
+Health check 2: HTTP 200, X-Request-ID=2d40e0cd627b4c459ecf2bf2b819aa4a
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 3/10 at 2026-11-15T21:29:04-05:00
+Health check 3: HTTP 200, X-Request-ID=6827b7af964c49f2b86369293ed8fa06
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 4/10 at 2026-11-15T21:30:04-05:00
+Health check 4: HTTP 200, X-Request-ID=d72edb79db35430fa5069cf3bfe8eddd
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 5/10 at 2026-11-15T21:31:04-05:00
+Health check 5: HTTP 200, X-Request-ID=a400daf92503448c948d38623c83f02e
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 6/10 at 2026-11-15T21:32:04-05:00
+Health check 6: HTTP 200, X-Request-ID=8f437b7e42a148a9b07c5578e65da732
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 7/10 at 2026-11-15T21:33:04-05:00
+Health check 7: HTTP 200, X-Request-ID=eecb18e85b754a469ddec885fd58bb59
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 8/10 at 2026-11-15T21:34:04-05:00
+Health check 8: HTTP 200, X-Request-ID=1459c665794446d1a6e49a41b43d187f
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 9/10 at 2026-11-15T21:35:04-05:00
+Health check 9: HTTP 200, X-Request-ID=6a9964b1df55479e9f638fa1baa42ca0
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Check 10/10 at 2026-11-15T21:36:04-05:00
+Health check 10: HTTP 200, X-Request-ID=d9eeb9317de34e379f1dc48bcb3b1097
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+Criterion 1 total: 10/10
+```
+
+#### Criterion 2 — `serve.py::ask` → `app.py::ask_pipeline`
+
+```text
+CVE prompt: What is CVE-2026-9022?: HTTP 200, X-Request-ID=4a537aa8193b46c9b9b6aa987e7811d8
+Expected CVE-2026-9022.json: PASS
+CVE prompt: What is CVE-2026-21444?: HTTP 200, X-Request-ID=fd16621130ec403484c351ded3f257e7
+Expected CVE-2026-21444.json: PASS
+CVE prompt: What is CVE-2026-49975?: HTTP 200, X-Request-ID=8f378ad5334e45d99b958e1314a3f83e
+Expected CVE-2026-49975.json: PASS
+CVE prompt: What is CVE-2026-6409?: HTTP 200, X-Request-ID=b8af66a62f064b489fe16a69c810b36c
+Expected CVE-2026-6409.json: PASS
+CVE prompt: What is CVE-2026-23268?: HTTP 200, X-Request-ID=7142d91875324b62b53402528d23406f
+Expected CVE-2026-23268.json: PASS
+Criterion 2 total: 5/5 (target: at least 4/5)
+```
+
+#### Criterion 3 — Nginx Basic Auth and `serve.py::home`
+
+```text
+Unauthenticated GET /: HTTP 401, X-Request-ID=(none)
+Unauthenticated POST /ask: HTTP 401, X-Request-ID=(none)
+Authenticated GET /: HTTP 200, X-Request-ID=d96ca93919e34adea6309da4e0d2c541
+Criterion 3: PASS (expected 401, 401, 200)
+```
+
+#### Criterion 4 — `serve.py::ask` and `serve.py::log_request`
+
+```text
+Empty-question POST /ask: HTTP 400, X-Request-ID=4dcf2de01bd8413e9521ad08daf0a888
+{"error":"Send JSON with a question in it, like {\"question\": \"is the housing lottery random?\"}"}
+
+{"event":"http_request","request_id":"4dcf2de01bd8413e9521ad08daf0a888","method":"POST","path":"/ask","status_code":400,"duration_ms":0.37,"outcome":"invalid_input"}
+```
+
+#### Criterion 5 — `serve.py::log_request`, matched by response ID
+
+```text
+{"event":"http_request","request_id":"a231bc0aaf444fd38e0fa6df35919c73","method":"POST","path":"/ask","status_code":200,"duration_ms":8.91,"outcome":"answered"}
+{"event":"http_request","request_id":"be2fb76c36144a6ca202eee23a02ac8c","method":"POST","path":"/ask","status_code":200,"duration_ms":8.94,"outcome":"answered"}
+{"event":"http_request","request_id":"dc0b1364c3ad4532921bb0abb419f5a9","method":"POST","path":"/ask","status_code":200,"duration_ms":8.63,"outcome":"answered"}
+{"event":"http_request","request_id":"5caf534dabb249558d2ac6c75e99ab05","method":"POST","path":"/ask","status_code":200,"duration_ms":9.01,"outcome":"answered"}
+{"event":"http_request","request_id":"81a2278c574d49b9ac7ba6b80369f478","method":"POST","path":"/ask","status_code":200,"duration_ms":7.86,"outcome":"answered"}
+{"event":"http_request","request_id":"4387773f31f44766a4ac139c14de587a","method":"POST","path":"/ask","status_code":200,"duration_ms":7.98,"outcome":"answered"}
+{"event":"http_request","request_id":"00a9dd78e076411ea114f7330696f8fb","method":"POST","path":"/ask","status_code":200,"duration_ms":8.64,"outcome":"answered"}
+{"event":"http_request","request_id":"89583e24b1024fd9b9143989d80449dd","method":"POST","path":"/ask","status_code":200,"duration_ms":8.61,"outcome":"answered"}
+{"event":"http_request","request_id":"76f6327e420045fd9612ce983b951227","method":"POST","path":"/ask","status_code":200,"duration_ms":8.75,"outcome":"answered"}
+{"event":"http_request","request_id":"1b210e47e166429c80f2ff2c01cfc7f0","method":"POST","path":"/ask","status_code":200,"duration_ms":8.06,"outcome":"answered"}
+```
 

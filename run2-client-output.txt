@@ -1,0 +1,175 @@
+=== Criterion 1: ten authenticated health checks, one per minute ===
+
+Check 1/10 at 2026-11-15T21:27:04-05:00
+
+Health check 1: HTTP 200, X-Request-ID=118d4b9c031f46acac9c6a3fb3683984
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+
+Criterion 1 check: PASS
+
+Check 2/10 at 2026-11-15T21:28:04-05:00
+
+Health check 2: HTTP 200, X-Request-ID=2d40e0cd627b4c459ecf2bf2b819aa4a
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+
+Criterion 1 check: PASS
+
+Check 3/10 at 2026-11-15T21:29:04-05:00
+
+Health check 3: HTTP 200, X-Request-ID=6827b7af964c49f2b86369293ed8fa06
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+
+Criterion 1 check: PASS
+
+Check 4/10 at 2026-11-15T21:30:04-05:00
+
+Health check 4: HTTP 200, X-Request-ID=d72edb79db35430fa5069cf3bfe8eddd
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+
+Criterion 1 check: PASS
+
+Check 5/10 at 2026-11-15T21:31:04-05:00
+
+Health check 5: HTTP 200, X-Request-ID=a400daf92503448c948d38623c83f02e
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+
+Criterion 1 check: PASS
+
+Check 6/10 at 2026-11-15T21:32:04-05:00
+
+Health check 6: HTTP 200, X-Request-ID=8f437b7e42a148a9b07c5578e65da732
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+
+Criterion 1 check: PASS
+
+Check 7/10 at 2026-11-15T21:33:04-05:00
+
+Health check 7: HTTP 200, X-Request-ID=eecb18e85b754a469ddec885fd58bb59
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+
+Criterion 1 check: PASS
+
+Check 8/10 at 2026-11-15T21:34:04-05:00
+
+Health check 8: HTTP 200, X-Request-ID=1459c665794446d1a6e49a41b43d187f
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+
+Criterion 1 check: PASS
+
+Check 9/10 at 2026-11-15T21:35:04-05:00
+
+Health check 9: HTTP 200, X-Request-ID=6a9964b1df55479e9f638fa1baa42ca0
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+
+Criterion 1 check: PASS
+
+Check 10/10 at 2026-11-15T21:36:04-05:00
+
+Health check 10: HTTP 200, X-Request-ID=d9eeb9317de34e379f1dc48bcb3b1097
+{"corpus":"CVE_2026","detail":"ready","index_ready":true,"status":"ok"}
+
+Criterion 1 check: PASS
+Criterion 1 total: 10/10
+
+=== Criterion 2: five fixed CVE prompts ===
+
+CVE prompt: What is CVE-2026-9022?: HTTP 200, X-Request-ID=4a537aa8193b46c9b9b6aa987e7811d8
+{"answer":"CVE-2026-9022 is a Stored Cross-Site Scripting vulnerability in the Splide Carousel Block plugin for WordPress (up to and including version 1.7.1) via the 'url' Block Attribute, caused by insufficient input sanitization and output escaping. This allows authenticated attackers with contributor-level access and above to inject arbitrary web scripts. The vulnerability has a MEDIUM severity with a CVSS v3.1 score of 6.4.\n\nSource: CVE-2026-9022.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-9022?","refused":false,"sources":["CVE-2026-9022.json"],"threshold":0.5}
+
+Expected CVE-2026-9022.json: PASS
+
+CVE prompt: What is CVE-2026-21444?: HTTP 200, X-Request-ID=fd16621130ec403484c351ded3f257e7
+{"answer":"CVE-2026-21444 is a vulnerability in libtpms (versions 0.10.0 and 0.10.1) where the library returns the wrong initialization vector (the initial IV instead of the last IV) to the caller when certain symmetric ciphers are used with OpenSSL 3.x. This weakens subsequent encryption and decryption steps, with the highest threat being to data confidentiality. \n\nSeverity: MEDIUM (CVSS v3.1 score: 5.5)\nWeakness type: CWE-327 (Use of a Broken or Risky Cryptographic Algorithm)\n\nSource: CVE-2026-21444.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-21444?","refused":false,"sources":["CVE-2026-21444.json"],"threshold":0.5}
+
+Expected CVE-2026-21444.json: PASS
+
+CVE prompt: What is CVE-2026-49975?: HTTP 200, X-Request-ID=8f378ad5334e45d99b958e1314a3f83e
+{"answer":"CVE-2026-49975 is a Memory Allocation with Excessive Size Value vulnerability (CWE-789) in Apache HTTP Server's mod_http2 (mod_http) that leads to a denial of service via malicious HTTP requests. This issue affects Apache HTTP Server versions from 2.4.17 through 2.4.67 (up to and including 2.4.67). \n\nSource: CVE-2026-49975.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-49975?","refused":false,"sources":["CVE-2026-49975.json"],"threshold":0.5}
+
+Expected CVE-2026-49975.json: PASS
+
+CVE prompt: What is CVE-2026-6409?: HTTP 200, X-Request-ID=b8af66a62f064b489fe16a69c810b36c
+{"answer":"CVE-2026-6409 is a Denial of Service (DoS) vulnerability in the Protobuf PHP library (Protocol Buffers Protobuf-php (Pecl)) that occurs during the parsing of untrusted input. Maliciously structured messages containing negative varints or deep recursion can crash the application and impact service availability. \n\nThe vulnerability has a HIGH severity with a CVSS cvssV4_0 score of 7.1, and is associated with weakness type CWE-20 (Improper input validation).\n\nSource: CVE-2026-6409.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-6409?","refused":false,"sources":["CVE-2026-6409.json"],"threshold":0.5}
+
+Expected CVE-2026-6409.json: PASS
+
+CVE prompt: What is CVE-2026-23268?: HTTP 200, X-Request-ID=7142d91875324b62b53402528d23406f
+{"answer":"CVE-2026-23268 is a vulnerability in the Linux kernel's apparmor component where an unprivileged local user can perform privileged policy management (loading, replacing, and removing profiles) by opening apparmorfs interfaces via a confused deputy attack, passing the opened file descriptor to a privileged process, and having that privileged process write to the interface. \n\nSeverity: HIGH (CVSS cvssV3_1 score: 7.8)\n\nSource: CVE-2026-23268.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-23268?","refused":false,"sources":["CVE-2026-23268.json"],"threshold":0.5}
+
+Expected CVE-2026-23268.json: PASS
+Criterion 2 total: 5/5 (target: at least 4/5)
+
+=== Criterion 3: authentication checks ===
+
+Unauthenticated GET /: HTTP 401, X-Request-ID=(none)
+
+Unauthenticated POST /ask: HTTP 401, X-Request-ID=(none)
+
+Authenticated GET /: HTTP 200, X-Request-ID=d96ca93919e34adea6309da4e0d2c541
+Criterion 3: PASS (expected 401, 401, 200)
+
+=== Criterion 4: deliberately empty question ===
+
+Empty-question POST /ask: HTTP 400, X-Request-ID=4dcf2de01bd8413e9521ad08daf0a888
+{"error":"Send JSON with a question in it, like {\"question\": \"is the housing lottery random?\"}"}
+
+Criterion 4 HTTP result: PASS
+Run this on the Droplet to retrieve the matching invalid-input log:
+journalctl -u ai201-rag --since '2 hours ago' -o cat --no-pager | grep '"request_id":"4dcf2de01bd8413e9521ad08daf0a888"'
+
+=== Criterion 5: ten sequential answered POST /ask requests ===
+
+Instrumented request 1/10: What is CVE-2026-9022?: HTTP 200, X-Request-ID=a231bc0aaf444fd38e0fa6df35919c73
+{"answer":"CVE-2026-9022 is a Stored Cross-Site Scripting vulnerability in the Splide Carousel Block plugin for WordPress (up to and including version 1.7.1) via the 'url' Block Attribute, caused by insufficient input sanitization and output escaping. This allows authenticated attackers with contributor-level access and above to inject arbitrary web scripts. The vulnerability has a MEDIUM severity with a CVSS v3.1 score of 6.4.\n\nSource: CVE-2026-9022.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-9022?","refused":false,"sources":["CVE-2026-9022.json"],"threshold":0.5}
+
+Answered response check: PASS
+
+Instrumented request 2/10: What is CVE-2026-21444?: HTTP 200, X-Request-ID=be2fb76c36144a6ca202eee23a02ac8c
+{"answer":"CVE-2026-21444 is a vulnerability in libtpms (versions 0.10.0 and 0.10.1) where the library returns the wrong initialization vector (the initial IV instead of the last IV) to the caller when certain symmetric ciphers are used with OpenSSL 3.x. This weakens subsequent encryption and decryption steps, with the highest threat being to data confidentiality. \n\nSeverity: MEDIUM (CVSS v3.1 score: 5.5)\nWeakness type: CWE-327 (Use of a Broken or Risky Cryptographic Algorithm)\n\nSource: CVE-2026-21444.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-21444?","refused":false,"sources":["CVE-2026-21444.json"],"threshold":0.5}
+
+Answered response check: PASS
+
+Instrumented request 3/10: What is CVE-2026-49975?: HTTP 200, X-Request-ID=dc0b1364c3ad4532921bb0abb419f5a9
+{"answer":"CVE-2026-49975 is a Memory Allocation with Excessive Size Value vulnerability (CWE-789) in Apache HTTP Server's mod_http2 (mod_http) that leads to a denial of service via malicious HTTP requests. This issue affects Apache HTTP Server versions from 2.4.17 through 2.4.67 (up to and including 2.4.67). \n\nSource: CVE-2026-49975.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-49975?","refused":false,"sources":["CVE-2026-49975.json"],"threshold":0.5}
+
+Answered response check: PASS
+
+Instrumented request 4/10: What is CVE-2026-6409?: HTTP 200, X-Request-ID=5caf534dabb249558d2ac6c75e99ab05
+{"answer":"CVE-2026-6409 is a Denial of Service (DoS) vulnerability in the Protobuf PHP library (Protocol Buffers Protobuf-php (Pecl)) that occurs during the parsing of untrusted input. Maliciously structured messages containing negative varints or deep recursion can crash the application and impact service availability. \n\nThe vulnerability has a HIGH severity with a CVSS cvssV4_0 score of 7.1, and is associated with weakness type CWE-20 (Improper input validation).\n\nSource: CVE-2026-6409.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-6409?","refused":false,"sources":["CVE-2026-6409.json"],"threshold":0.5}
+
+Answered response check: PASS
+
+Instrumented request 5/10: What is CVE-2026-23268?: HTTP 200, X-Request-ID=81a2278c574d49b9ac7ba6b80369f478
+{"answer":"CVE-2026-23268 is a vulnerability in the Linux kernel's apparmor component where an unprivileged local user can perform privileged policy management (loading, replacing, and removing profiles) by opening apparmorfs interfaces via a confused deputy attack, passing the opened file descriptor to a privileged process, and having that privileged process write to the interface. \n\nSeverity: HIGH (CVSS cvssV3_1 score: 7.8)\n\nSource: CVE-2026-23268.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-23268?","refused":false,"sources":["CVE-2026-23268.json"],"threshold":0.5}
+
+Answered response check: PASS
+
+Instrumented request 6/10: What is CVE-2026-9022?: HTTP 200, X-Request-ID=4387773f31f44766a4ac139c14de587a
+{"answer":"CVE-2026-9022 is a Stored Cross-Site Scripting vulnerability in the Splide Carousel Block plugin for WordPress (up to and including version 1.7.1) via the 'url' Block Attribute, caused by insufficient input sanitization and output escaping. This allows authenticated attackers with contributor-level access and above to inject arbitrary web scripts. The vulnerability has a MEDIUM severity with a CVSS v3.1 score of 6.4.\n\nSource: CVE-2026-9022.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-9022?","refused":false,"sources":["CVE-2026-9022.json"],"threshold":0.5}
+
+Answered response check: PASS
+
+Instrumented request 7/10: What is CVE-2026-21444?: HTTP 200, X-Request-ID=00a9dd78e076411ea114f7330696f8fb
+{"answer":"CVE-2026-21444 is a vulnerability in libtpms (versions 0.10.0 and 0.10.1) where the library returns the wrong initialization vector (the initial IV instead of the last IV) to the caller when certain symmetric ciphers are used with OpenSSL 3.x. This weakens subsequent encryption and decryption steps, with the highest threat being to data confidentiality. \n\nSeverity: MEDIUM (CVSS v3.1 score: 5.5)\nWeakness type: CWE-327 (Use of a Broken or Risky Cryptographic Algorithm)\n\nSource: CVE-2026-21444.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-21444?","refused":false,"sources":["CVE-2026-21444.json"],"threshold":0.5}
+
+Answered response check: PASS
+
+Instrumented request 8/10: What is CVE-2026-49975?: HTTP 200, X-Request-ID=89583e24b1024fd9b9143989d80449dd
+{"answer":"CVE-2026-49975 is a Memory Allocation with Excessive Size Value vulnerability (CWE-789) in Apache HTTP Server's mod_http2 (mod_http) that leads to a denial of service via malicious HTTP requests. This issue affects Apache HTTP Server versions from 2.4.17 through 2.4.67 (up to and including 2.4.67). \n\nSource: CVE-2026-49975.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-49975?","refused":false,"sources":["CVE-2026-49975.json"],"threshold":0.5}
+
+Answered response check: PASS
+
+Instrumented request 9/10: What is CVE-2026-6409?: HTTP 200, X-Request-ID=76f6327e420045fd9612ce983b951227
+{"answer":"CVE-2026-6409 is a Denial of Service (DoS) vulnerability in the Protobuf PHP library (Protocol Buffers Protobuf-php (Pecl)) that occurs during the parsing of untrusted input. Maliciously structured messages containing negative varints or deep recursion can crash the application and impact service availability. \n\nThe vulnerability has a HIGH severity with a CVSS cvssV4_0 score of 7.1, and is associated with weakness type CWE-20 (Improper input validation).\n\nSource: CVE-2026-6409.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-6409?","refused":false,"sources":["CVE-2026-6409.json"],"threshold":0.5}
+
+Answered response check: PASS
+
+Instrumented request 10/10: What is CVE-2026-23268?: HTTP 200, X-Request-ID=1b210e47e166429c80f2ff2c01cfc7f0
+{"answer":"CVE-2026-23268 is a vulnerability in the Linux kernel's apparmor component where an unprivileged local user can perform privileged policy management (loading, replacing, and removing profiles) by opening apparmorfs interfaces via a confused deputy attack, passing the opened file descriptor to a privileged process, and having that privileged process write to the interface. \n\nSeverity: HIGH (CVSS cvssV3_1 score: 7.8)\n\nSource: CVE-2026-23268.json","best_distance":0.0,"corpus":"CVE_2026","question":"What is CVE-2026-23268?","refused":false,"sources":["CVE-2026-23268.json"],"threshold":0.5}
+
+Answered response check: PASS
+Criterion 5 response total: 10/10
+
+Run 2 Criterion 5 request IDs: a231bc0aaf444fd38e0fa6df35919c73 | be2fb76c36144a6ca202eee23a02ac8c | dc0b1364c3ad4532921bb0abb419f5a9 | 5caf534dabb249558d2ac6c75e99ab05 | 81a2278c574d49b9ac7ba6b80369f478 | 4387773f31f44766a4ac139c14de587a | 00a9dd78e076411ea114f7330696f8fb | 89583e24b1024fd9b9143989d80449dd | 76f6327e420045fd9612ce983b951227 | 1b210e47e166429c80f2ff2c01cfc7f0
+Run this on the Droplet to retrieve the exact matching journal lines:
+journalctl -u ai201-rag --since '2 hours ago' -o cat --no-pager | grep -E '"request_id":"(a231bc0aaf444fd38e0fa6df35919c73|be2fb76c36144a6ca202eee23a02ac8c|dc0b1364c3ad4532921bb0abb419f5a9|5caf534dabb249558d2ac6c75e99ab05|81a2278c574d49b9ac7ba6b80369f478|4387773f31f44766a4ac139c14de587a|00a9dd78e076411ea114f7330696f8fb|89583e24b1024fd9b9143989d80449dd|76f6327e420045fd9612ce983b951227|1b210e47e166429c80f2ff2c01cfc7f0)"' | tee run2-criterion5-journal.txt
