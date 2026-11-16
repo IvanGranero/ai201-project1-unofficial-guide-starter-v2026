@@ -261,3 +261,34 @@ I chose this RAG because I had already developed it for a CVE corpus and know ho
 - I am not changing the chunking, embeddings, or retrieval strategy.
 - I am not adding user accounts or multiple service instances.
 
+## Instrumentation
+
+The deployed service logs each HTTP request as JSON in the systemd journal. These ten successful `/ask` requests and one rejected-input request were collected with `journalctl -u ai201-rag --since "30 minutes ago" -o cat --no-pager`. The logs record request ID, method, path, status, duration, and outcome; they do not include the question or prompt.
+
+Ten answered requests:
+
+```text
+{"event":"http_request","request_id":"2abb104765fd402e8c07aeb7acd0df67","method":"POST","path":"/ask","status_code":200,"duration_ms":956.43,"outcome":"answered"}
+{"event":"http_request","request_id":"a13345b57edf4ff5a72c893d790c6a40","method":"POST","path":"/ask","status_code":200,"duration_ms":8.77,"outcome":"answered"}
+{"event":"http_request","request_id":"b64537f01293477d923edbd9855b8b92","method":"POST","path":"/ask","status_code":200,"duration_ms":9.88,"outcome":"answered"}
+{"event":"http_request","request_id":"3c1f671870a0436e861b7da036717d4a","method":"POST","path":"/ask","status_code":200,"duration_ms":9.07,"outcome":"answered"}
+{"event":"http_request","request_id":"8ae0de60361848e7bd88dc96468f0807","method":"POST","path":"/ask","status_code":200,"duration_ms":7.73,"outcome":"answered"}
+{"event":"http_request","request_id":"6b77261dca5b4d73873bad476b010940","method":"POST","path":"/ask","status_code":200,"duration_ms":8.18,"outcome":"answered"}
+{"event":"http_request","request_id":"8ac879afd99840f9bb1bda9ed623080f","method":"POST","path":"/ask","status_code":200,"duration_ms":9.53,"outcome":"answered"}
+{"event":"http_request","request_id":"4fddc365884646b982f3254d6ec8f51d","method":"POST","path":"/ask","status_code":200,"duration_ms":7.94,"outcome":"answered"}
+{"event":"http_request","request_id":"1f31d46ecffa4272b737ad14efba79f4","method":"POST","path":"/ask","status_code":200,"duration_ms":8.96,"outcome":"answered"}
+{"event":"http_request","request_id":"ea2ed88c9e3a43c1b5329af1824fbd7d","method":"POST","path":"/ask","status_code":200,"duration_ms":9.82,"outcome":"answered"}
+```
+
+Rejected-input run (empty question, HTTP 400):
+
+```text
+{"event":"http_request","request_id":"47c244e1be6843efbae32ec617a19b61","method":"POST","path":"/ask","status_code":400,"duration_ms":0.25,"outcome":"invalid_input"}
+```
+
+## What It Costs
+
+For these ten answered HTTP requests, the mean end-to-end request duration was **103.63 ms**. Method: arithmetic mean of the ten `duration_ms` values logged by the service (`1036.31 ms / 10`). This is elapsed request time, including any retrieval, cache lookup, and model-service wait; it is not CPU-only time or billed Gemini token usage.
+
+The first request took 956.43 ms, while the other nine took 7.73–9.88 ms. This strongly suggests the repeats were served from the response cache.
+
