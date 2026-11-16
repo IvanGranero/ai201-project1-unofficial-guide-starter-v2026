@@ -176,3 +176,18 @@ sample; a smaller sample could be dominated by one cold request, and a much
 larger sample would add API usage without being necessary for this class
 deployment check. Requiring exactly one matching entry makes missing or
 duplicate logs visible.
+
+### Post-baseline follow-up — Criterion 4 tightened
+
+**Original Criterion 4 (kept unchanged above):** An empty-string question
+returns HTTP 400 and has a matching `invalid_input` journal record.
+
+**Follow-up target:** In each run, both `{"question":""}` and
+`{"question":123}` return HTTP 400, and each response's `X-Request-ID` has
+exactly one matching journal record with status 400 and
+`"outcome":"invalid_input"` (2/2 cases).
+
+**Reason:** The original three runs established that empty strings were
+handled, but they did not test the JSON value's type. A local pre-change
+check showed that a numeric question raised an `AttributeError` in
+`serve.py::ask` instead of being rejected as invalid input.

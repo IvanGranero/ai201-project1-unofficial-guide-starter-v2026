@@ -396,8 +396,8 @@ X-Request-ID: 18609d4eb90645a2a5cffac0e0cb8a62
 
 ### Run 2 — actual output
 
-The full client transcript, including all five CVE response bodies, is saved
-in [run2-client-output.txt](./run2-client-output.txt).
+Run 2's output is preserved in the per-criterion excerpts below. Its local
+transcript was overwritten when the Run 3 command reused the same filename.
 
 #### Criterion 1 — `serve.py::health`
 
@@ -573,5 +573,78 @@ Empty-question POST /ask: HTTP 400, X-Request-ID=4dcf2de01bd8413e9521ad08daf0a88
 {"event":"http_request","request_id":"89583e24b1024fd9b9143989d80449dd","method":"POST","path":"/ask","status_code":200,"duration_ms":8.61,"outcome":"answered"}
 {"event":"http_request","request_id":"76f6327e420045fd9612ce983b951227","method":"POST","path":"/ask","status_code":200,"duration_ms":8.75,"outcome":"answered"}
 {"event":"http_request","request_id":"1b210e47e166429c80f2ff2c01cfc7f0","method":"POST","path":"/ask","status_code":200,"duration_ms":8.06,"outcome":"answered"}
+```
+
+## Before/after: server-side question validation
+
+### Baseline diagnosis
+
+All five original criteria were **MET** in each of the three baseline runs, so
+there were no measured acceptance misses to attribute to a pipeline stage.
+Criterion 4 was nevertheless too narrow: it tested an empty string but not a
+non-string JSON value. Criterion 2's `4/5` target allowed one transient
+upstream model or network failure; all 15 baseline prompts passed, but I kept
+that allowance for the follow-up.
+
+The uncovered failure was in the request-validation stage,
+`serve.py::ask`. Before the change, a numeric `question` reached `.strip()`
+without a type check, raising `AttributeError` and returning HTTP 500. The
+log was marked `completed`, not `invalid_input`.
+
+```text
+AttributeError: 'int' object has no attribute 'strip'
+HTTP 500
+{"event":"http_request","request_id":"12bb3857e46347e1a0f6646f60f47c95","method":"POST","path":"/ask","status_code":500,"duration_ms":2.1,"outcome":"completed"}
+```
+
+### One improvement and tightened follow-up target
+
+`serve.py::ask` now verifies that `question` is a string before trimming it.
+Missing, empty, and non-string values take the existing HTTP 400
+`invalid_input` path. A focused regression check was added to
+`tools/smoke_test.py`.
+
+The original Criterion 4 remains recorded in [criteria.md](./criteria.md).
+The follow-up tightens it: in each run, test both an empty string and a
+numeric question; require both responses to be HTTP 400 with exactly one
+matching `invalid_input` journal event per response ID (2/2 cases).
+
+### Before-and-after run results
+
+The “before” columns are the three completed deployment runs above. The
+follow-up columns remain unrun until the updated `serve.py` is deployed.
+
+| Criterion | Before target | Before R1 | Before R2 | Before R3 | Follow-up target | After R1 | After R2 | After R3 |
+|---|---|---:|---:|---:|---|---|---|---|
+| 1. Ready health endpoint | 10/10 | 10/10 | 10/10 | 10/10 | 10/10 | Not run | Not run | Not run |
+| 2. Expected CVE source retrieved | At least 4/5 | 5/5 | 5/5 | 5/5 | At least 4/5 | Not run | Not run | Not run |
+| 3. Authentication | 401, 401, 200 | Pass | Pass | Pass | 401, 401, 200 | Not run | Not run | Not run |
+| 4. Invalid-input response and log | Empty string: HTTP 400 + matching log | Pass | Pass | Pass | Empty and numeric inputs: 2/2 return 400 + matching logs | Not run | Not run | Not run |
+| 5. Answer instrumentation | 10/10 response IDs have exactly one valid log | 10/10 | 10/10 | 10/10 | 10/10 response IDs have exactly one valid log | Not run | Not run | Not run |
+
+Local post-change checks (Flask test client; not yet the deployed follow-up
+runs) produced:
+
+```text
+{"event":"http_request","request_id":"c466ab5b93604ab19076384587abc8c9","method":"POST","path":"/ask","status_code":400,"duration_ms":0.97,"outcome":"invalid_input"}
+{"event":"http_request","request_id":"d6ac108f8d8c4a409e5b1869813610b0","method":"POST","path":"/ask","status_code":400,"duration_ms":0.07,"outcome":"invalid_input"}
+PASS HTTP 400; request_id=c466ab5b93604ab19076384587abc8c9; log=invalid_input
+PASS HTTP 400; request_id=d6ac108f8d8c4a409e5b1869813610b0; log=invalid_input
+```
+
+### Remote probe before deployment — not an after run
+
+The six remote probes below were sent before the updated handler was deployed.
+They are not counted as follow-up runs: empty input returned 400 three times,
+but numeric input still returned 500 three times, which means the live service
+was still exhibiting the pre-change behavior.
+
+```text
+{"event":"http_request","request_id":"a876a70b61dd416cadf88676fb1840a0","method":"POST","path":"/ask","status_code":400,"duration_ms":0.23,"outcome":"invalid_input"}
+{"event":"http_request","request_id":"505b583c36664c138a24fba899a58e5f","method":"POST","path":"/ask","status_code":500,"duration_ms":5.64,"outcome":"completed"}
+{"event":"http_request","request_id":"4a11484b4724492e8240801ac0b04a1b","method":"POST","path":"/ask","status_code":400,"duration_ms":0.23,"outcome":"invalid_input"}
+{"event":"http_request","request_id":"4949312ac8cc4afabc83476546aeb49a","method":"POST","path":"/ask","status_code":500,"duration_ms":2.39,"outcome":"completed"}
+{"event":"http_request","request_id":"eea34f8e16a24c69a7980e310b49a594","method":"POST","path":"/ask","status_code":400,"duration_ms":0.28,"outcome":"invalid_input"}
+{"event":"http_request","request_id":"6029d0879dc54a098c74e1cf317a790f","method":"POST","path":"/ask","status_code":500,"duration_ms":3.19,"outcome":"completed"}
 ```
 

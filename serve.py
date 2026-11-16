@@ -112,8 +112,9 @@ def ask():
     """
     from app import ask_pipeline
 
-    payload = request.get_json(silent=True) or {}
-    question = (payload.get("question") or "").strip()
+    payload = request.get_json(silent=True)
+    question = payload.get("question") if isinstance(payload, dict) else None
+    question = question.strip() if isinstance(question, str) else ""
 
     if not question:
         g.request_outcome = "invalid_input"

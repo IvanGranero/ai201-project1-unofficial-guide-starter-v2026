@@ -79,6 +79,7 @@ def main():
         client = service_app.test_client()
         home_response = client.get("/")
         response = client.post("/ask", json={})
+        non_string_response = client.post("/ask", json={"question": 123})
     finally:
         service_app.logger.removeHandler(log_handler)
 
@@ -92,7 +93,23 @@ def main():
         for line in log_output.getvalue().splitlines()
         if line.startswith("{")
     ]
-    request_log = log_records[-1] if log_records else {}
+    request_log = next(
+        (
+            record
+            for record in log_records
+            if record.get("request_id") == response.headers.get("X-Request-ID")
+        ),
+        {},
+    )
+    non_string_log = next(
+        (
+            record
+            for record in log_records
+            if record.get("request_id")
+            == non_string_response.headers.get("X-Request-ID")
+        ),
+        {},
+    )
     check(
         "  HTTP requests include a request ID",
         bool(response.headers.get("X-Request-ID")),
@@ -102,6 +119,15 @@ def main():
         request_log.get("status_code") == 400
         and request_log.get("outcome") == "invalid_input"
         and isinstance(request_log.get("duration_ms"), (int, float)),
+    )
+    check(
+        "  non-string questions are rejected and logged as invalid input",
+        non_string_response.status_code == 400
+        and non_string_log.get("request_id")
+        == non_string_response.headers.get("X-Request-ID")
+        and non_string_log.get("status_code") == 400
+        and non_string_log.get("outcome") == "invalid_input"
+        and isinstance(non_string_log.get("duration_ms"), (int, float)),
     )
 
     with patch("app.ask_pipeline", side_effect=RuntimeError("private detail")):
