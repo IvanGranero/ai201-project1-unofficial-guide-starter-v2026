@@ -612,7 +612,8 @@ matching `invalid_input` journal event per response ID (2/2 cases).
 ### Before-and-after run results
 
 The “before” columns are the three completed deployment runs above. The
-follow-up columns remain unrun until the updated `serve.py` is deployed.
+“after” columns represent full follow-up runs across all five criteria and
+remain unrun. Criterion 4's focused follow-up is recorded separately below.
 
 | Criterion | Before target | Before R1 | Before R2 | Before R3 | Follow-up target | After R1 | After R2 | After R3 |
 |---|---|---:|---:|---:|---|---|---|---|
@@ -647,4 +648,34 @@ was still exhibiting the pre-change behavior.
 {"event":"http_request","request_id":"eea34f8e16a24c69a7980e310b49a594","method":"POST","path":"/ask","status_code":400,"duration_ms":0.28,"outcome":"invalid_input"}
 {"event":"http_request","request_id":"6029d0879dc54a098c74e1cf317a790f","method":"POST","path":"/ask","status_code":500,"duration_ms":3.19,"outcome":"completed"}
 ```
+
+### Targeted post-deployment validation — tightened Criterion 4
+
+The focused validation was then repeated three times against the updated
+deployment. Both input types returned HTTP 400 in all three trials, and all
+six response IDs have exactly one matching `invalid_input` journal event.
+The client transcript is saved in
+[after-c4-validation.txt](./after-c4-validation.txt).
+
+```text
+Trial 1 empty: HTTP 400, X-Request-ID=ebae4ff76cd4483eb22e93574b67d144
+Trial 1 non-string: HTTP 400, X-Request-ID=52ab5a57d7a74dd483bcfed6c419e356
+Trial 2 empty: HTTP 400, X-Request-ID=07584291d8db4dd5bbcceb9c71a094de
+Trial 2 non-string: HTTP 400, X-Request-ID=07753a262b8c4f219f9237fe8c82215c
+Trial 3 empty: HTTP 400, X-Request-ID=8184103475d145549cb7e80416deb2df
+Trial 3 non-string: HTTP 400, X-Request-ID=d46bd51bc2ee435cb3207389d63ef07b
+```
+
+```text
+{"event":"http_request","request_id":"ebae4ff76cd4483eb22e93574b67d144","method":"POST","path":"/ask","status_code":400,"duration_ms":1.56,"outcome":"invalid_input"}
+{"event":"http_request","request_id":"52ab5a57d7a74dd483bcfed6c419e356","method":"POST","path":"/ask","status_code":400,"duration_ms":0.27,"outcome":"invalid_input"}
+{"event":"http_request","request_id":"07584291d8db4dd5bbcceb9c71a094de","method":"POST","path":"/ask","status_code":400,"duration_ms":0.24,"outcome":"invalid_input"}
+{"event":"http_request","request_id":"07753a262b8c4f219f9237fe8c82215c","method":"POST","path":"/ask","status_code":400,"duration_ms":0.28,"outcome":"invalid_input"}
+{"event":"http_request","request_id":"8184103475d145549cb7e80416deb2df","method":"POST","path":"/ask","status_code":400,"duration_ms":0.2,"outcome":"invalid_input"}
+{"event":"http_request","request_id":"d46bd51bc2ee435cb3207389d63ef07b","method":"POST","path":"/ask","status_code":400,"duration_ms":0.21,"outcome":"invalid_input"}
+```
+
+**Targeted result:** tightened Criterion 4 is **MET** (3/3 empty inputs and
+3/3 non-string inputs returned HTTP 400 with matching logs). This is not a
+full after run of the other four criteria.
 

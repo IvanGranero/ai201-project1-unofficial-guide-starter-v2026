@@ -1,45 +1,33 @@
 
-Trial 1 empty: HTTP 400, X-Request-ID=a876a70b61dd416cadf88676fb1840a0
+Trial 1 empty: HTTP 400, X-Request-ID=ebae4ff76cd4483eb22e93574b67d144
 {"error":"Send JSON with a question in it, like {\"question\": \"is the housing lottery random?\"}"}
 
 Result: PASS
 
-Trial 1 non-string: HTTP 500, X-Request-ID=505b583c36664c138a24fba899a58e5f
-<!doctype html>
-<html lang=en>
-<title>500 Internal Server Error</title>
-<h1>Internal Server Error</h1>
-<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>
-
-Result: FAIL
-
-Trial 2 empty: HTTP 400, X-Request-ID=4a11484b4724492e8240801ac0b04a1b
+Trial 1 non-string: HTTP 400, X-Request-ID=52ab5a57d7a74dd483bcfed6c419e356
 {"error":"Send JSON with a question in it, like {\"question\": \"is the housing lottery random?\"}"}
 
 Result: PASS
 
-Trial 2 non-string: HTTP 500, X-Request-ID=4949312ac8cc4afabc83476546aeb49a
-<!doctype html>
-<html lang=en>
-<title>500 Internal Server Error</title>
-<h1>Internal Server Error</h1>
-<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>
-
-Result: FAIL
-
-Trial 3 empty: HTTP 400, X-Request-ID=eea34f8e16a24c69a7980e310b49a594
+Trial 2 empty: HTTP 400, X-Request-ID=07584291d8db4dd5bbcceb9c71a094de
 {"error":"Send JSON with a question in it, like {\"question\": \"is the housing lottery random?\"}"}
 
 Result: PASS
 
-Trial 3 non-string: HTTP 500, X-Request-ID=6029d0879dc54a098c74e1cf317a790f
-<!doctype html>
-<html lang=en>
-<title>500 Internal Server Error</title>
-<h1>Internal Server Error</h1>
-<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>
+Trial 2 non-string: HTTP 400, X-Request-ID=07753a262b8c4f219f9237fe8c82215c
+{"error":"Send JSON with a question in it, like {\"question\": \"is the housing lottery random?\"}"}
 
-Result: FAIL
+Result: PASS
+
+Trial 3 empty: HTTP 400, X-Request-ID=8184103475d145549cb7e80416deb2df
+{"error":"Send JSON with a question in it, like {\"question\": \"is the housing lottery random?\"}"}
+
+Result: PASS
+
+Trial 3 non-string: HTTP 400, X-Request-ID=d46bd51bc2ee435cb3207389d63ef07b
+{"error":"Send JSON with a question in it, like {\"question\": \"is the housing lottery random?\"}"}
+
+Result: PASS
 
 Run this command on the Droplet:
-journalctl -u ai201-rag --since '30 minutes ago' -o cat --no-pager | grep -E '"request_id":"(a876a70b61dd416cadf88676fb1840a0|505b583c36664c138a24fba899a58e5f|4a11484b4724492e8240801ac0b04a1b|4949312ac8cc4afabc83476546aeb49a|eea34f8e16a24c69a7980e310b49a594|6029d0879dc54a098c74e1cf317a790f)"' | tee after-c4-validation-journal.txt
+journalctl -u ai201-rag --since '30 minutes ago' -o cat --no-pager | grep -E '"request_id":"(ebae4ff76cd4483eb22e93574b67d144|52ab5a57d7a74dd483bcfed6c419e356|07584291d8db4dd5bbcceb9c71a094de|07753a262b8c4f219f9237fe8c82215c|8184103475d145549cb7e80416deb2df|d46bd51bc2ee435cb3207389d63ef07b)"' | tee after-c4-validation-journal.txt
